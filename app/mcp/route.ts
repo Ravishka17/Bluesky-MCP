@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { z } from 'zod/v4';
 
 const BLUESKY_IDENTIFIER = process.env.BLUESKY_IDENTIFIER || '';
 const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || '';
@@ -16,70 +17,66 @@ async function getBlueskyClient() {
   return blueskyClient;
 }
 
-const toolDefs = [
-  { name: 'search_posts', description: 'Search for Bluesky posts by keyword', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number', default: 10 } }, required: ['query'] } },
-  { name: 'get_timeline', description: 'Get your Bluesky timeline', inputSchema: { type: 'object', properties: { limit: { type: 'number', default: 20 } } } },
-  { name: 'create_post', description: 'Create a new Bluesky post', inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
-  { name: 'like_post', description: 'Like a Bluesky post', inputSchema: { type: 'object', properties: { uri: { type: 'string' }, cid: { type: 'string' } }, required: ['uri', 'cid'] } },
-  { name: 'repost_post', description: 'Repost a Bluesky post', inputSchema: { type: 'object', properties: { uri: { type: 'string' }, cid: { type: 'string' } }, required: ['uri', 'cid'] } },
-];
+const mcpServer = new McpServer({
+  name: 'bluesky-mcp',
+  version: '1.0.0',
+});
 
-const mcpServer = new Server(
-  { name: 'bluesky-mcp', version: '1.0.0' },
-  { capabilities: { tools: { listChanged: true } } }
-);
+mcpServer.registerTool('search_posts', {
+  title: 'Search Posts',
+  description: 'Search for Bluesky posts by keyword',
+  inputSchema: z.object({ query: z.string(), limit: z.number().default(10) }),
+}, async ({ query, limit = 10 }: { query: string; limit?: number }) => {
+  const client = await getBlueskyClient();
+  const resp = await client.searchPosts({ q: query, limit });
+  return { content: [{ type: 'text', text: JSON.stringify(resp.data.posts.map((p: any) => ({ uri: p.uri, cid: p.cid, author: p.author.handle, text: p.record.text, timestamp: p.indexedAt, likes: p.likeCount ?? 0, reposts: p.repostCount ?? 0, replies: p.replyCount ?? 0 }))) }] };
+});
 
-const toolHandlers: Record<string, (args: any) => Promise<any>> = {
-  async search_posts({ query, limit = 10 }: any) {
-    const client = await getBlueskyClient();
-    const resp = await client.searchPosts({ q: query, limit });
-    return resp.data.posts.map((p: any) => ({ uri: p.uri, cid: p.cid, author: p.author.handle, text: p.record.text, timestamp: p.indexedAt, likes: p.likeCount ?? 0, reposts: p.repostCount ?? 0, replies: p.replyCount ?? 0 }));
-  },
-  async get_timeline({ limit = 20 }: any) {
-    const client = await getBlueskyClient();
-    const resp = await client.getTimeline({ limit });
-    return resp.data.feed.map((item: any) => {
-      const p = item.post;
-      return { uri: p.uri, cid: p.cid, author: p.author.handle, text: p.record.text, timestamp: p.indexedAt, likes: p.likeCount ?? 0, reposts: p.repostCount ?? 0 };
-    });
-  },
-  async create_post({ text }: any) {
-    const client = await getBlueskyClient();
-    const resp = await client.createPost({ text });
-    return { uri: resp.uri, cid: resp.cid };
-  },
-  async like_post({ uri, cid }: any) {
-    const client = await getBlueskyClient();
-    await client.like(uri, cid);
-    return { success: true };
-  },
-  async repost_post({ uri, cid }: any) {
-    const client = await getBlueskyClient();
-    await client.repost(uri, cid);
-    return { success: true };
-  },
-};
+mcpServer.registerTool('get_timeline', {
+  title: 'Get Timeline',
+  description: 'Get your Bluesky timeline',
+  inputSchema: z.object({ limit: z.number().default(20) }),
+}, async ({ limit = 20 }: { limit?: number }) => {
+  const client = await getBlueskyClient();
+  const resp = await client.getTimeline({ limit });
+  return { content: [{ type: 'text', text: JSON.stringify(resp.data.feed.map((item: any) => { const p = item.post; return { uri: p.uri, cid: p.cid, author: p.author.handle, text: p.record.text, timestamp: p.indexedAt, likes: p.likeCount ?? 0, reposts: p.repostCount ?? 0 }; })) }] };
+});
 
-mcpServer.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: toolDefs
-}));
+mcpServer.registerTool('create_post', {
+  title: 'Create Post',
+  description: 'Create a new Bluesky post',
+  inputSchema: z.object({ text: z.string() }),
+}, async ({ text }: { text: string }) => {
+  const client = await getBlueskyClient();
+  const resp = await client.createPost({ text });
+  return { content: [{ type: 'text', text: JSON.stringify({ uri: resp.uri, cid: resp.cid }) }] };
+});
 
-mcpServer.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-  const handler = toolHandlers[request.params.name];
-  if (!handler) throw new Error(`Unknown tool: ${request.params.name}`);
-  try {
-    const result = await handler(request.params.arguments ?? {});
-    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-  } catch (err: any) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }], isError: true };
-  }
+mcpServer.registerTool('like_post', {
+  title: 'Like Post',
+  description: 'Like a Bluesky post',
+  inputSchema: z.object({ uri: z.string(), cid: z.string() }),
+}, async ({ uri, cid }: { uri: string; cid: string }) => {
+  const client = await getBlueskyClient();
+  await client.like(uri, cid);
+  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
+});
+
+mcpServer.registerTool('repost_post', {
+  title: 'Repost',
+  description: 'Repost a Bluesky post',
+  inputSchema: z.object({ uri: z.string(), cid: z.string() }),
+}, async ({ uri, cid }: { uri: string; cid: string }) => {
+  const client = await getBlueskyClient();
+  await client.repost(uri, cid);
+  return { content: [{ type: 'text', text: JSON.stringify({ success: true }) }] };
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     await mcpServer.connect(transport);
-    await transport.handleRequest(req as any, new NextResponse(), null as any);
+    return await transport.handleRequest(req as Request);
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
