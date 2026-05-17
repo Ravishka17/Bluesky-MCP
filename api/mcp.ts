@@ -1,139 +1,73 @@
-/**
- * MCP Route Handler - Streamable HTTP transport for MCP protocol
- * Supports POST (messages), GET (SSE), and DELETE (session termination)
- */
-
 import type { NextRequest } from 'next/server';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createMCPServer } from '../../src/mcp-server.js';
+import { MCPServer } from '../src/mcp-server';
+import { loadMCPConfiguration } from '../src/mcp-server-helper';
+import { createInvalidMethodResponse, createErrorResponse } from '../src/utils';
 
-// Store for active transports (in production, use Redis or similar)
-const activeTransports = new Map<string, StreamableHTTPServerTransport>();
+export const dynamic = 'force-dynamic';
 
-/**
- * POST /api/mcp - Handle JSON-RPC messages
- */
-export async function POST(request: NextRequest): Promise<Response> {
+// Store the server instance globally
+let serverInstance: MCPServer | null = null;
+
+function getServer(): MCPServer {
+  if (!serverInstance) {
+    const config = loadMCPConfiguration();
+    serverInstance = new MCPServer(config);
+  }
+  return serverInstance;
+}
+
+// MCP endpoint handler
+export async function GET(request: NextRequest) {
+  // Auth check
+  const authHeader = request.headers.get('Authorization');
+  const expectedToken = process.env.MCP_API_TOKEN;
+  
+  if (!expectedToken) {
+    return createErrorResponse('MCP_API_TOKEN is not configured on the server', 503);
+  }
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return createErrorResponse('Missing or invalid Authorization header', 401);
+  }
+  
+  const token = authHeader.slice(7);
+  if (token !== expectedToken) {
+    return createErrorResponse('Invalid API token', 403);
+  }
+
   try {
-    // Create fresh server instance for stateless operation
-    const server = createMCPServer();
+    const server = getServer();
+    return server.handleSSE(request);
+  } catch (error) {
+    console.error('SSE handler error:', error);
+    return createErrorResponse('SSE connection failed', 500);
+  }
+}
 
-    // Create transport for this request
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => crypto.randomUUID()
-    });
+export async function POST(request: NextRequest) {
+  // Auth check
+  const authHeader = request.headers.get('Authorization');
+  const expectedToken = process.env.MCP_API_TOKEN;
+  
+  if (!expectedToken) {
+    return createErrorResponse('MCP_API_TOKEN is not configured on the server', 503);
+  }
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return createErrorResponse('Missing or invalid Authorization header', 401);
+  }
+  
+  const token = authHeader.slice(7);
+  if (token !== expectedToken) {
+    return createErrorResponse('Invalid API token', 403);
+  }
 
-    // Connect server to transport
-    await server.connect(transport);
-
-    // Extract session ID from header if present
-    const sessionId = request.headers.get('mcp-session-id');
-
-    // Store transport for potential session management
-    if (sessionId) {
-      activeTransports.set(sessionId, transport);
-    }
-
-    // Get request body
+  try {
+    const server = getServer();
     const body = await request.json();
-
-    // Handle the request
-    const response = await transport.handleRequest(request, null, body);
-
-    return response;
+    return server.handlePOST(body);
   } catch (error) {
-    console.error('MCP POST error:', error);
-    return new Response(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: 'Internal server error'
-        },
-        id: null
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Content-Type-Options': 'nosniff'
-        }
-      }
-    );
-  }
-}
-
-/**
- * GET /api/mcp - SSE channel for server-initiated messages
- */
-export async function GET(request: NextRequest): Promise<Response> {
-  try {
-    const sessionId = request.headers.get('mcp-session-id');
-
-    // Check for existing session
-    if (sessionId) {
-      const existingTransport = activeTransports.get(sessionId);
-      if (existingTransport) {
-        const response = await existingTransport.handleRequest(request, null, null);
-        return response;
-      }
-    }
-
-    // Create new session
-    const server = createMCPServer();
-    const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => crypto.randomUUID()
-    });
-
-    await server.connect(transport);
-
-    // Store for potential session management
-    const newSessionId = transport.sessionId;
-    if (newSessionId) {
-      activeTransports.set(newSessionId, transport);
-    }
-
-    const response = await transport.handleRequest(request, null, null);
-    return response;
-  } catch (error) {
-    console.error('MCP GET error:', error);
-    return new Response(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        error: {
-          code: -32603,
-          message: 'Internal server error'
-        },
-        id: null
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-  }
-}
-
-/**
- * DELETE /api/mcp - Session termination
- */
-export async function DELETE(request: NextRequest): Promise<Response> {
-  try {
-    const sessionId = request.headers.get('mcp-session-id');
-
-    if (sessionId) {
-      const transport = activeTransports.get(sessionId);
-      if (transport) {
-        await transport.handleRequest(request, null, null);
-        activeTransports.delete(sessionId);
-      }
-    }
-
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    console.error('MCP DELETE error:', error);
-    return new Response(null, { status: 204 });
+    console.error('MCP POST handler error:', error);
+    return createErrorResponse('Invalid request body', 400);
   }
 }
