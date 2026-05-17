@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/mcp",
+      "dest": "/api/mcp"
+    },
+    {
+      "src": "/health",
+      "dest": "/api/health"
+    },
+    {
+      "src": "/profile/(.*)",
+      "dest": "/api/profile/$1"
+    },
+    {
+      "src": "/timeline(.*)",
+      "dest": "/api/timeline$1"
+    },
+    {
+      "src": "/post/(.*)",
+      "dest": "/api/post/$1"
+    },
+    {
+      "src": "/search/(.*)",
+      "dest": "/api/search/$1"
+    },
+    {
+      "src": "/thread/(.*)",
+      "dest": "/api/thread/$1"
+    },
+    {
+      "src": "/feed/(.*)",
+      "dest": "/api/feed/$1"
+    },
+    {
+      "src": "/actor/(.*)",
+      "dest": "/api/actor/$1"
+    },
+    {
+      "src": "/connectivity",
+      "dest": "/api/connectivity"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        }
+      ]
+    }
+  ]
+}
