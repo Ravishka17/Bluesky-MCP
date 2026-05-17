@@ -21,52 +21,101 @@ async function getBlueskyClient() {
   return blueskyClient;
 }
 
-// MCP tool handlers
-const toolHandlers: Record<string, (args: any) => Promise<any>) = {
+// MCP tool definitions
+const tools = {
+  search_posts: {
+    description: 'Search for Bluesky posts by keyword',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        limit: { type: 'number', description: 'Max results', default: 10 },
+      },
+      required: ['query'],
+    },
+  },
+  get_timeline: {
+    description: 'Get your Bluesky timeline',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results', default: 20 },
+      },
+    },
+  },
+  create_post: {
+    description: 'Create a new Bluesky post',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Post text' },
+      },
+      required: ['text'],
+    },
+  },
+  like_post: {
+    description: 'Like a Bluesky post',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI' },
+        cid: { type: 'string', description: 'Post CID' },
+      },
+      required: ['uri', 'cid'],
+    },
+  },
+  repost_post: {
+    description: 'Repost a Bluesky post',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI' },
+        cid: { type: 'string', description: 'Post CID' },
+      },
+      required: ['uri', 'cid'],
+    },
+  },
+};
+
+// MCP server instance
+const mcpServer = new Server(
+  { name: 'bluesky-mcp', version: '1.0.0' },
+  { capabilities: { tools } }
+);
+
+// Tool handlers
+const toolHandlers: Record<string, (args: any) => Promise<any>> = {
   async search_posts({ query, limit = 10 }: { query: string; limit?: number }) {
     const client = await getBlueskyClient();
     const response = await client.searchPosts({ q: query, limit });
     return response.data.posts.map((post: any) => ({
-      uri: post.uri,
-      cid: post.cid,
-      author: post.author.handle,
-      text: post.record.text,
-      timestamp: post.indexedAt,
-      likes: post.likeCount ?? 0,
-      reposts: post.repostCount ?? 0,
-      replies: post.replyCount ?? 0,
+      uri: post.uri, cid: post.cid, author: post.author.handle,
+      text: post.record.text, timestamp: post.indexedAt,
+      likes: post.likeCount ?? 0, reposts: post.repostCount ?? 0, replies: post.replyCount ?? 0,
     }));
   },
-
   async get_timeline({ limit = 20 }: { limit?: number }) {
     const client = await getBlueskyClient();
     const response = await client.getTimeline({ limit });
     return response.data.feed.map((item: any) => {
       const post = item.post;
       return {
-        uri: post.uri,
-        cid: post.cid,
-        author: post.author.handle,
-        text: post.record.text,
-        timestamp: post.indexedAt,
-        likes: post.likeCount ?? 0,
-        reposts: post.repostCount ?? 0,
+        uri: post.uri, cid: post.cid, author: post.author.handle,
+        text: post.record.text, timestamp: post.indexedAt,
+        likes: post.likeCount ?? 0, reposts: post.repostCount ?? 0,
       };
     });
   },
-
   async create_post({ text }: { text: string }) {
     const client = await getBlueskyClient();
     const response = await client.createPost({ text });
     return { uri: response.uri, cid: response.cid };
   },
-
   async like_post({ uri, cid }: { uri: string; cid: string }) {
     const client = await getBlueskyClient();
     await client.like(uri, cid);
     return { success: true };
   },
-
   async repost_post({ uri, cid }: { uri: string; cid: string }) {
     const client = await getBlueskyClient();
     await client.repost(uri, cid);
@@ -74,91 +123,30 @@ const toolHandlers: Record<string, (args: any) => Promise<any>) = {
   },
 };
 
-// MCP server instance
-const mcpServer = new Server(
-  {
-    name: 'bluesky-mcp',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {
-        search_posts: {
-          description: 'Search for Bluesky posts by keyword',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string', description: 'Search query' },
-              limit: { type: 'number', description: 'Max results', default: 10 },
-            },
-            required: ['query'],
-          },
-        },
-        get_timeline: {
-          description: 'Get your Bluesky timeline',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              limit: { type: 'number', description: 'Max results', default: 20 },
-            },
-          },
-        },
-        create_post: {
-          description: 'Create a new Bluesky post',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              text: { type: 'string', description: 'Post text' },
-            },
-            required: ['text'],
-          },
-        },
-        like_post: {
-          description: 'Like a Bluesky post',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              uri: { type: 'string', description: 'Post URI' },
-              cid: { type: 'string', description: 'Post CID' },
-            },
-            required: ['uri', 'cid'],
-          },
-        },
-        repost_post: {
-          description: 'Repost a Bluesky post',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              uri: { type: 'string', description: 'Post URI' },
-              cid: { type: 'string', description: 'Post CID' },
-            },
-            required: ['uri', 'cid'],
-          },
-        },
-      },
-    },
-  }
-);
+// Register tool handler
+mcpServer.setRequestHandler({ method: 'tools/list' }, async () => ({
+  tools: Object.entries(tools).map(([name, def]) => ({ name, ...def }))
+}));
 
-// Register tool handlers
-for (const [name, handler] of Object.entries(toolHandlers)) {
-  mcpServer.setRequestHandler({ method: 'tools/' }, async (request: any) => {
-    if (request.params.name === name) {
-      const result = await handler(request.params.arguments ?? {});
-      return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-    }
-    return { error: 'Unknown tool' };
-  });
-}
+mcpServer.setRequestHandler({ method: 'tools/call' }, async (request: any) => {
+  const handler = toolHandlers[request.params.name];
+  if (!handler) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Unknown tool' }) }] };
+  try {
+    const result = await handler(request.params.arguments ?? {});
+    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+  } catch (err: any) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] };
+  }
+});
 
 export async function POST(request: NextRequest) {
   try {
     const transport = new StreamableHTTPClientTransport('http://localhost/api/mcp');
     await transport.start();
-    await transport.handleRequest(request as any, null as any);
-    return new NextResponse('MCP server running', { status: 200 });
+    const response = await transport.handleRequest(request as any, null as any);
+    return response;
   } catch (error) {
-    return NextResponse.json({ error: 'MCP error', details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
 
