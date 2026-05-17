@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
 const BLUESKY_IDENTIFIER = process.env.BLUESKY_IDENTIFIER || '';
 const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || '';
@@ -59,15 +60,18 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
   },
 };
 
-mcpServer.setRequestHandler({ method: 'tools/list' }, async () => ({ tools: toolDefs }));
-mcpServer.setRequestHandler({ method: 'tools/call' }, async (request: any) => {
+mcpServer.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: toolDefs
+}));
+
+mcpServer.setRequestHandler(CallToolRequestSchema, async (request: any) => {
   const handler = toolHandlers[request.params.name];
-  if (!handler) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Unknown tool' }) }] };
+  if (!handler) throw new Error(`Unknown tool: ${request.params.name}`);
   try {
     const result = await handler(request.params.arguments ?? {});
     return { content: [{ type: 'text', text: JSON.stringify(result) }] };
   } catch (err: any) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }] };
+    return { content: [{ type: 'text', text: JSON.stringify({ error: err.message }) }], isError: true };
   }
 });
 
