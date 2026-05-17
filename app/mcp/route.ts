@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 const BLUESKY_IDENTIFIER = process.env.BLUESKY_IDENTIFIER || '';
 const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || '';
@@ -16,49 +15,18 @@ async function getBlueskyClient() {
   return blueskyClient;
 }
 
-const tools = {
-  search_posts: {
-    description: 'Search for Bluesky posts by keyword',
-    inputSchema: {
-      type: 'object',
-      properties: { query: { type: 'string' }, limit: { type: 'number', default: 10 } },
-      required: ['query'],
-    },
-  },
-  get_timeline: {
-    description: 'Get your Bluesky timeline',
-    inputSchema: {
-      type: 'object',
-      properties: { limit: { type: 'number', default: 20 } },
-    },
-  },
-  create_post: {
-    description: 'Create a new Bluesky post',
-    inputSchema: {
-      type: 'object',
-      properties: { text: { type: 'string' } },
-      required: ['text'],
-    },
-  },
-  like_post: {
-    description: 'Like a Bluesky post',
-    inputSchema: {
-      type: 'object',
-      properties: { uri: { type: 'string' }, cid: { type: 'string' } },
-      required: ['uri', 'cid'],
-    },
-  },
-  repost_post: {
-    description: 'Repost a Bluesky post',
-    inputSchema: {
-      type: 'object',
-      properties: { uri: { type: 'string' }, cid: { type: 'string' } },
-      required: ['uri', 'cid'],
-    },
-  },
-};
+const toolDefs = [
+  { name: 'search_posts', description: 'Search for Bluesky posts by keyword', inputSchema: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number', default: 10 } }, required: ['query'] } },
+  { name: 'get_timeline', description: 'Get your Bluesky timeline', inputSchema: { type: 'object', properties: { limit: { type: 'number', default: 20 } } } },
+  { name: 'create_post', description: 'Create a new Bluesky post', inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } },
+  { name: 'like_post', description: 'Like a Bluesky post', inputSchema: { type: 'object', properties: { uri: { type: 'string' }, cid: { type: 'string' } }, required: ['uri', 'cid'] } },
+  { name: 'repost_post', description: 'Repost a Bluesky post', inputSchema: { type: 'object', properties: { uri: { type: 'string' }, cid: { type: 'string' } }, required: ['uri', 'cid'] } },
+];
 
-const mcpServer = new Server({ name: 'bluesky-mcp', version: '1.0.0' }, { capabilities: { tools } });
+const mcpServer = new Server(
+  { name: 'bluesky-mcp', version: '1.0.0' },
+  { capabilities: { tools: { listChanged: true } } }
+);
 
 const toolHandlers: Record<string, (args: any) => Promise<any>> = {
   async search_posts({ query, limit = 10 }: any) {
@@ -91,10 +59,7 @@ const toolHandlers: Record<string, (args: any) => Promise<any>> = {
   },
 };
 
-mcpServer.setRequestHandler({ method: 'tools/list' }, async () => ({
-  tools: Object.entries(tools).map(([name, def]) => ({ name, ...def }))
-}));
-
+mcpServer.setRequestHandler({ method: 'tools/list' }, async () => ({ tools: toolDefs }));
 mcpServer.setRequestHandler({ method: 'tools/call' }, async (request: any) => {
   const handler = toolHandlers[request.params.name];
   if (!handler) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Unknown tool' }) }] };
