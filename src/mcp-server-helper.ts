@@ -1,24 +1,17 @@
-/**
- * MCP Server Helper - Factory function to create server instances
- */
+import type { MCPConfiguration } from './types';
 
-import { createMCPServer } from './mcp-server.js';
+export function loadMCPConfiguration(): MCPConfiguration | { error: string } {
+  const bskyIdentifier = process.env.BSKY_IDENTIFIER;
+  const bskyPassword = process.env.BSKY_PASSWORD;
 
-/**
- * Get or create MCP server instance
- */
-let serverInstance: ReturnType<typeof createMCPServer> | null = null;
-
-export function getMCPServer(): ReturnType<typeof createMCPServer> {
-  if (!serverInstance) {
-    serverInstance = createMCPServer();
+  if (!bskyIdentifier || !bskyPassword) {
+    return {
+      error: 'Missing Bluesky credentials. Please set BSKY_IDENTIFIER and BSKY_PASSWORD environment variables.',
+    };
   }
-  return serverInstance;
-}
 
-/**
- * Reset server instance (for testing)
- */
-export function resetMCPServer(): void {
-  serverInstance = null;
+  return {
+    identifier: bskyIdentifier,
+    password: bskyPassword,
+  };
 }
