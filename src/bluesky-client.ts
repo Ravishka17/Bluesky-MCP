@@ -20,8 +20,8 @@ import type {
   CreatePostResult,
   SearchPostsOptions,
   SearchPostsResult
-} from './types.js';
-import { formatError } from './utils.js';
+} from './types';
+import { formatError } from './utils';
 
 export class BlueskyClient {
   private agent: BskyAgent;

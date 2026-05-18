@@ -7,11 +7,11 @@ import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { createMCPServer } from './mcp-server.js';
-import { securityHeadersMiddleware, rateLimitMiddleware, writeRateLimitMiddleware, corsOptions } from './middleware.js';
-import { sanitizeString, validatePostText } from './sanitize.js';
-import { formatError } from './utils.js';
-import { BlueskyClient } from './bluesky-client.js';
+import { createMCPServer } from './mcp-server';
+import { securityHeadersMiddleware, rateLimitMiddleware, writeRateLimitMiddleware, corsOptions } from './middleware';
+import { sanitizeString, validatePostText } from './sanitize';
+import { formatError } from './utils';
+import { BlueskyClient } from './bluesky-client';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '8000', 10);

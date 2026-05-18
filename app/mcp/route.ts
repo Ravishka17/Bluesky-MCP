@@ -4,7 +4,7 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 
 /**
  * MCP endpoint for Next.js App Router.
- * Handles both POST (requests) and GET (SSE).
+ * Handles POST requests for MCP tools/resources/prompts.
  */
 
 export async function POST(req: NextRequest) {
@@ -13,9 +13,12 @@ export async function POST(req: NextRequest) {
     // in serverless environments where the container might be reused.
     const server = createMCPServer();
     
+    // Use the web-standard transport suitable for Next.js Edge/Serverless functions
     const transport = new WebStandardStreamableHTTPServerTransport();
     
     await server.connect(transport);
+    
+    // Handle the request
     return await transport.handleRequest(req);
   } catch (error) {
     console.error('MCP POST error:', error);
@@ -33,21 +36,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  try {
-    const server = createMCPServer();
-    
-    // For SSE, we need a session ID generator
-    const transport = new WebStandardStreamableHTTPServerTransport();
-    
-    await server.connect(transport);
-    return await transport.handleRequest(req);
-  } catch (error) {
-    console.error('MCP GET error:', error);
-    return new Response('Internal Server Error', { status: 500 });
-  }
+/**
+ * GET handler for status check.
+ * Vercel Serverless Functions have limited support for long-lived SSE connections.
+ */
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'MCP endpoint active', 
+    version: '1.0.0',
+    transport: 'WebStandardStreamableHTTPServerTransport (POST only)'
+  });
 }
 
+/**
+ * OPTIONS handler for CORS preflight requests.
+ */
 export async function OPTIONS() {
   return new Response(null, {
     status: 204,

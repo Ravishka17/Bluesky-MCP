@@ -10,12 +10,12 @@ import {
   ListPromptsRequestSchema,
   GetPromptRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
-import { BlueskyClient } from './bluesky-client.js';
-import { toolHandlers, isValidTool } from './handlers.js';
-import { toolDefinitions } from './toolDefinitions.js';
-import { sanitizeString, sanitizeCursor, sanitizeLimit, DEFAULT_LIMIT } from './sanitize.js';
-import { formatError, createSuccessResponse, createErrorResponse } from './utils.js';
-import type { BlueskyCredentials } from './types.js';
+import { BlueskyClient } from './bluesky-client';
+import { toolHandlers, isValidTool } from './handlers';
+import { toolDefinitions } from './toolDefinitions';
+import { sanitizeString, sanitizeCursor, sanitizeLimit, DEFAULT_LIMIT } from './sanitize';
+import { formatError, createSuccessResponse, createErrorResponse } from './utils';
+import type { BlueskyCredentials } from './types';
 
 // Server version
 const SERVER_VERSION = '1.0.0';

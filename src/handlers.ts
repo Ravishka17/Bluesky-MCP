@@ -2,7 +2,7 @@
  * MCP Tool Handlers - Implementation of all Bluesky MCP tools
  */
 
-import { BlueskyClient } from './bluesky-client.js';
+import { BlueskyClient } from './bluesky-client';
 import {
   sanitizeString,
   sanitizeCursor,
@@ -11,8 +11,8 @@ import {
   validatePostText,
   MAX_LIMIT,
   DEFAULT_LIMIT
-} from './sanitize.js';
-import { formatError } from './utils.js';
+} from './sanitize';
+import { formatError } from './utils';
 import type {
   CreatePostInput,
   GetTimelineInput,
@@ -23,7 +23,7 @@ import type {
   SearchPostsInput,
   GetFeedInput,
   ToolResult
-} from './types.js';
+} from './types';
 
 /**
  * Handle create_post tool

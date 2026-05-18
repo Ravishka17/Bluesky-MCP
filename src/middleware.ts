@@ -4,8 +4,8 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import type { RateLimitConfig, RateLimitEntry } from './types.js';
-import { SECURITY_HEADERS } from './sanitize.js';
+import type { RateLimitConfig, RateLimitEntry } from './types';
+import { SECURITY_HEADERS } from './sanitize';
 
 // In-memory rate limit store (per-instance)
 // For Vercel serverless, each invocation is independent
