@@ -8,6 +8,12 @@ export interface BlueskyCredentials {
   password: string;
 }
 
+// MCP server configuration loaded from environment variables
+export interface MCPConfiguration {
+  identifier: string;
+  password: string;
+}
+
 export interface AuthenticatedSession {
   accessJwt: string;
   refreshJwt: string;
