@@ -352,6 +352,30 @@ export const toolDefinitions: ToolDefinition[] = [
       required: ['uri']
     }
   },
+  {
+    name: 'like_post',
+    description: 'Like a post on Bluesky. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI (at://...)' },
+        cid: { type: 'string', description: 'Post CID' }
+      },
+      required: ['uri', 'cid']
+    }
+  },
+  {
+    name: 'repost_post',
+    description: 'Repost a post on Bluesky. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI (at://...)' },
+        cid: { type: 'string', description: 'Post CID' }
+      },
+      required: ['uri', 'cid']
+    }
+  },
 
   // --- Utility ---
   {

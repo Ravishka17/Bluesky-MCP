@@ -20,8 +20,8 @@ import type {
   CreatePostResult,
   SearchPostsOptions,
   SearchPostsResult
-} from './types.js';
-import { formatError } from './utils.js';
+} from './types';
+import { formatError } from './utils';
 
 export class BlueskyClient {
   private agent: BskyAgent;
@@ -340,6 +340,38 @@ export class BlueskyClient {
       };
     } catch (error) {
       throw new Error(`Failed to get reposted by: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Like a post
+   */
+  async like(uri: string, cid: string): Promise<{ uri: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const result = await this.agent.like(uri, cid);
+      return { uri: result.uri };
+    } catch (error) {
+      throw new Error(`Failed to like post: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Repost a post
+   */
+  async repost(uri: string, cid: string): Promise<{ uri: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const result = await this.agent.repost(uri, cid);
+      return { uri: result.uri };
+    } catch (error) {
+      throw new Error(`Failed to repost: ${formatError(error)}`);
     }
   }
 

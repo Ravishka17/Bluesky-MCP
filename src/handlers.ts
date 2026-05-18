@@ -2,7 +2,7 @@
  * MCP Tool Handlers - Implementation of all Bluesky MCP tools
  */
 
-import { BlueskyClient } from './bluesky-client.js';
+import { BlueskyClient } from './bluesky-client';
 import {
   sanitizeString,
   sanitizeCursor,
@@ -11,8 +11,8 @@ import {
   validatePostText,
   MAX_LIMIT,
   DEFAULT_LIMIT
-} from './sanitize.js';
-import { formatError } from './utils.js';
+} from './sanitize';
+import { formatError } from './utils';
 import type {
   CreatePostInput,
   GetTimelineInput,
@@ -23,7 +23,7 @@ import type {
   SearchPostsInput,
   GetFeedInput,
   ToolResult
-} from './types.js';
+} from './types';
 
 /**
  * Handle create_post tool
@@ -370,6 +370,42 @@ export async function handleGetRepostedBy(
 }
 
 /**
+ * Handle like_post tool
+ */
+export async function handleLikePost(
+  client: BlueskyClient,
+  params: { uri: string; cid: string }
+): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) {
+      return { success: false, error: 'Authentication required' };
+    }
+    const result = await client.like(params.uri, params.cid);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+/**
+ * Handle repost_post tool
+ */
+export async function handleRepostPost(
+  client: BlueskyClient,
+  params: { uri: string; cid: string }
+): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) {
+      return { success: false, error: 'Authentication required' };
+    }
+    const result = await client.repost(params.uri, params.cid);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+/**
  * Handle test_connectivity tool
  */
 export async function handleTestConnectivity(
@@ -443,6 +479,8 @@ export const toolHandlers: Record<string, Function> = {
   get_posts: handleGetPosts,
   get_likes: handleGetLikes,
   get_reposted_by: handleGetRepostedBy,
+  like_post: handleLikePost,
+  repost_post: handleRepostPost,
   test_connectivity: handleTestConnectivity,
   get_suggestions: handleGetSuggestions
 };
