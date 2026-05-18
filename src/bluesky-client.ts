@@ -344,6 +344,38 @@ export class BlueskyClient {
   }
 
   /**
+   * Like a post
+   */
+  async like(uri: string, cid: string): Promise<{ uri: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const result = await this.agent.like(uri, cid);
+      return { uri: result.uri };
+    } catch (error) {
+      throw new Error(`Failed to like post: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Repost a post
+   */
+  async repost(uri: string, cid: string): Promise<{ uri: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const result = await this.agent.repost(uri, cid);
+      return { uri: result.uri };
+    } catch (error) {
+      throw new Error(`Failed to repost: ${formatError(error)}`);
+    }
+  }
+
+  /**
    * Test connectivity to Bluesky
    */
   async testConnectivity(): Promise<{ connected: boolean; error?: string }> {
