@@ -376,6 +376,14 @@ export const toolDefinitions: ToolDefinition[] = [
       required: ['uri', 'cid']
     }
   },
+  {
+    name: 'get_preferences',
+    description: 'Get private preferences for the authenticated account (content filters, feed settings, saved feeds, etc.). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
 
   // --- Utility ---
   {
