@@ -412,6 +412,21 @@ export class BlueskyClient {
   }
 
   /**
+   * Get account preferences (requires auth)
+   */
+  async getPreferences(): Promise<{ preferences: unknown[] }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+    try {
+      const response = await this.agent.app.bsky.actor.getPreferences({});
+      return { preferences: response.data.preferences };
+    } catch (error) {
+      throw new Error(`Failed to get preferences: ${formatError(error)}`);
+    }
+  }
+
+  /**
    * Logout and clear session
    */
   logout(): void {
