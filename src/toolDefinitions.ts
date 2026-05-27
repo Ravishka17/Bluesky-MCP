@@ -1,6 +1,5 @@
 /**
  * MCP Tool Definitions - JSON Schema definitions for AI agent consumption
- * These define the interface for all Bluesky operations
  */
 
 export interface ToolDefinition {
@@ -13,31 +12,21 @@ export interface ToolDefinition {
   };
 }
 
-/**
- * All MCP tools available for Bluesky operations
- */
 export const toolDefinitions: ToolDefinition[] = [
-  // --- Post Operations ---
+
+  // ── Posts ──────────────────────────────────────────────────────────────────
+
   {
     name: 'create_post',
-    description: 'Create a new post on Bluesky. Returns the URI and CID of the created post. Requires authentication.',
+    description: 'Create a new post on Bluesky (max 300 chars). Optionally set language codes or reply to an existing post. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
-        text: {
-          type: 'string',
-          description: 'The text content of the post (max 300 characters)',
-          maxLength: 300
-        },
-        langs: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Language codes for the post (e.g., ["en", "es"])',
-          maxItems: 5
-        },
+        text: { type: 'string', description: 'Post text content (max 300 characters)', maxLength: 300 },
+        langs: { type: 'array', items: { type: 'string' }, description: 'Language codes, e.g. ["en"]', maxItems: 5 },
         reply: {
           type: 'object',
-          description: 'Reply configuration (root and parent post URIs/CIDs)',
+          description: 'Reply configuration',
           properties: {
             rootUri: { type: 'string', description: 'Root post URI (at://...)' },
             rootCid: { type: 'string', description: 'Root post CID' },
@@ -50,252 +39,13 @@ export const toolDefinitions: ToolDefinition[] = [
       required: ['text']
     }
   },
-
-  // --- Feed Operations ---
-  {
-    name: 'get_timeline',
-    description: "Get the authenticated user's home timeline (chronological feed from followed users). Requires authentication.",
-    inputSchema: {
-      type: 'object',
-      properties: {
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor from previous response'
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of posts to return (1-100, default 20)',
-          minimum: 1,
-          maximum: 100,
-          default: 20
-        }
-      }
-    }
-  },
-  {
-    name: 'get_feed',
-    description: 'Get posts from a custom feed generator (e.g., trending, lists). Use at:// URI format for the feed.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        feed: {
-          type: 'string',
-          description: 'Feed generator URI (at://did/...)',
-          pattern: '^at://'
-        },
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor'
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of posts to return (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 20
-        }
-      },
-      required: ['feed']
-    }
-  },
-  {
-    name: 'get_author_feed',
-    description: 'Get posts from a specific user/actor. Can filter by post type (with replies, media only, etc.).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        actor: {
-          type: 'string',
-          description: "The actor's DID or handle (e.g., did:plc:xxx or handle.bsky.social)"
-        },
-        filter: {
-          type: 'string',
-          enum: ['posts_with_replies', 'posts_no_replies', 'posts_with_media', 'posts_and_author_threads'],
-          description: 'Filter type for posts',
-          default: 'posts_with_replies'
-        },
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor'
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of posts to return (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 20
-        }
-      },
-      required: ['actor']
-    }
-  },
-
-  // --- Thread Operations ---
-  {
-    name: 'get_thread',
-    description: 'Get a post thread (post with replies, parents, and descendants). Essential for understanding conversations.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        uri: {
-          type: 'string',
-          description: 'The post URI (at://did/app.bsky.feed.post/...)',
-          pattern: '^at://'
-        },
-        depth: {
-          type: 'number',
-          description: 'How deep into replies to fetch (0-1000, default 6)',
-          minimum: 0,
-          maximum: 1000,
-          default: 6
-        },
-        parentHeight: {
-          type: 'number',
-          description: 'How many parent posts to fetch (0-1000, default 80)',
-          minimum: 0,
-          maximum: 1000,
-          default: 80
-        }
-      },
-      required: ['uri']
-    }
-  },
-
-  // --- Profile Operations ---
-  {
-    name: 'get_profile',
-    description: 'Get detailed profile information for a single user (bio, follower/following counts, avatar, etc.). Public endpoint — works with or without authentication.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        actor: {
-          type: 'string',
-          description: "The actor's DID or handle (e.g., handle.bsky.social or did:plc:xxx)"
-        }
-      },
-      required: ['actor']
-    }
-  },
-  {
-    name: 'get_profiles',
-    description: 'Get detailed profile views for multiple users at once (batch operation, up to 25 actors). Public endpoint — works with or without authentication.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        actors: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of actor DIDs or handles (e.g., ["handle.bsky.social", "did:plc:xxx"])',
-          maxItems: 25
-        }
-      },
-      required: ['actors']
-    }
-  },
-
-  // --- Search Operations ---
-  {
-    name: 'search_actors',
-    description: 'Search for Bluesky users/actors by name or handle. Works with or without authentication.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        term: {
-          type: 'string',
-          description: 'Search query (name, handle, or keyword)',
-          maxLength: 100
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of results to return (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 10
-        }
-      },
-      required: ['term']
-    }
-  },
-  {
-    name: 'search_actors_typeahead',
-    description: 'Quick actor search for autocomplete (typeahead). Returns suggestions as you type. Works with or without authentication.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        term: {
-          type: 'string',
-          description: 'Search prefix (minimum 1 character)',
-          maxLength: 100
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of suggestions (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 10
-        }
-      },
-      required: ['term']
-    }
-  },
-  {
-    name: 'search_posts',
-    description: 'Search for posts by keyword, hashtag, author, language, or mentions. Works with or without authentication. Returns posts with engagement stats.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: {
-          type: 'string',
-          description: 'Search query (keywords, hashtags, etc.)',
-          maxLength: 500
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of results (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 20
-        },
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor'
-        },
-        sort: {
-          type: 'string',
-          enum: ['latest', 'top'],
-          description: 'Sort by latest or top (most engagement)',
-          default: 'latest'
-        },
-        mentions: {
-          type: 'string',
-          description: 'Filter posts that mention this actor (handle or DID)'
-        },
-        author: {
-          type: 'string',
-          description: 'Filter posts by this author (handle or DID)'
-        },
-        lang: {
-          type: 'string',
-          description: 'Filter by language code (e.g., "en", "ja", "es")'
-        }
-      },
-      required: ['query']
-    }
-  },
-
-  // --- Post Interactions ---
   {
     name: 'get_posts',
-    description: 'Get specific posts by their AT Protocol URIs. Use to fetch posts you have references to. Works with or without authentication.',
+    description: 'Fetch specific posts by their AT Protocol URIs (up to 25 at once). Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
-        uris: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Array of post URIs (at://...)',
-          maxItems: 25
-        }
+        uris: { type: 'array', items: { type: 'string' }, description: 'Array of post URIs (at://...)', maxItems: 25 }
       },
       required: ['uris']
     }
@@ -306,22 +56,9 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        uri: {
-          type: 'string',
-          description: 'Post URI (at://...)',
-          pattern: '^at://'
-        },
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor'
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of results (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 50
-        }
+        uri: { type: 'string', description: 'Post URI (at://...)', pattern: '^at://' },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of results (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
       },
       required: ['uri']
     }
@@ -332,22 +69,9 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        uri: {
-          type: 'string',
-          description: 'Post URI (at://...)',
-          pattern: '^at://'
-        },
-        cursor: {
-          type: 'string',
-          description: 'Pagination cursor'
-        },
-        limit: {
-          type: 'number',
-          description: 'Number of results (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 50
-        }
+        uri: { type: 'string', description: 'Post URI (at://...)', pattern: '^at://' },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of results (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
       },
       required: ['uri']
     }
@@ -377,13 +101,87 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
 
-  // --- Account Operations ---
+  // ── Feeds ──────────────────────────────────────────────────────────────────
+
   {
-    name: 'get_preferences',
-    description: 'Get private preferences for the authenticated account. Includes content filters, feed settings, saved feeds, and moderation preferences. Requires authentication.',
+    name: 'get_timeline',
+    description: "Get the authenticated user's home timeline (posts from followed accounts). Requires authentication.",
     inputSchema: {
       type: 'object',
-      properties: {}
+      properties: {
+        cursor: { type: 'string', description: 'Pagination cursor from previous response' },
+        limit: { type: 'number', description: 'Number of posts to return (1-100, default 20)', minimum: 1, maximum: 100, default: 20 }
+      }
+    }
+  },
+  {
+    name: 'get_feed',
+    description: 'Get posts from a custom feed generator using its at:// URI. Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        feed: { type: 'string', description: 'Feed generator URI (at://did/...)', pattern: '^at://' },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of posts (1-100, default 20)', minimum: 1, maximum: 100, default: 20 }
+      },
+      required: ['feed']
+    }
+  },
+  {
+    name: 'get_author_feed',
+    description: "Get posts from a specific user's profile feed. Can filter by type. Works with or without authentication.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        actor: { type: 'string', description: "Actor's DID or handle (e.g. handle.bsky.social)" },
+        filter: {
+          type: 'string',
+          enum: ['posts_with_replies', 'posts_no_replies', 'posts_with_media', 'posts_and_author_threads'],
+          description: 'Filter type for posts',
+          default: 'posts_with_replies'
+        },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of posts (1-100, default 20)', minimum: 1, maximum: 100, default: 20 }
+      },
+      required: ['actor']
+    }
+  },
+  {
+    name: 'get_thread',
+    description: 'Get a full post thread including replies and parent posts. Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI (at://did/app.bsky.feed.post/...)', pattern: '^at://' },
+        depth: { type: 'number', description: 'Reply depth to fetch (0-1000, default 6)', minimum: 0, maximum: 1000, default: 6 },
+        parentHeight: { type: 'number', description: 'Parent posts to include (0-1000, default 80)', minimum: 0, maximum: 1000, default: 80 }
+      },
+      required: ['uri']
+    }
+  },
+
+  // ── Profiles ───────────────────────────────────────────────────────────────
+
+  {
+    name: 'get_profile',
+    description: 'Get detailed profile for a single user (bio, follower counts, avatar, etc.). Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        actor: { type: 'string', description: "Actor's DID or handle" }
+      },
+      required: ['actor']
+    }
+  },
+  {
+    name: 'get_profiles',
+    description: 'Get detailed profiles for multiple users at once (batch, up to 25). Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        actors: { type: 'array', items: { type: 'string' }, description: 'Array of DIDs or handles', maxItems: 25 }
+      },
+      required: ['actors']
     }
   },
   {
@@ -392,38 +190,146 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        limit: {
-          type: 'number',
-          description: 'Number of suggestions (1-100)',
-          minimum: 1,
-          maximum: 100,
-          default: 10
-        }
+        limit: { type: 'number', description: 'Number of suggestions (1-100, default 10)', minimum: 1, maximum: 100, default: 10 }
       }
     }
   },
 
-  // --- Utility ---
+  // ── Search ─────────────────────────────────────────────────────────────────
+
+  {
+    name: 'search_actors',
+    description: 'Search for Bluesky users by name or handle. Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        term: { type: 'string', description: 'Search query (name, handle, or keyword)', maxLength: 100 },
+        limit: { type: 'number', description: 'Number of results (1-100, default 10)', minimum: 1, maximum: 100, default: 10 }
+      },
+      required: ['term']
+    }
+  },
+  {
+    name: 'search_actors_typeahead',
+    description: 'Quick autocomplete search for Bluesky users as you type. Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        term: { type: 'string', description: 'Search prefix (min 1 character)', maxLength: 100 },
+        limit: { type: 'number', description: 'Number of suggestions (1-100, default 10)', minimum: 1, maximum: 100, default: 10 }
+      },
+      required: ['term']
+    }
+  },
+  {
+    name: 'search_posts',
+    description: 'Search posts by keyword, hashtag, author, language, or mention. Works with or without authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query (keywords, hashtags, etc.)', maxLength: 500 },
+        limit: { type: 'number', description: 'Number of results (1-100, default 20)', minimum: 1, maximum: 100, default: 20 },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        sort: { type: 'string', enum: ['latest', 'top'], description: 'Sort by latest or top engagement', default: 'latest' },
+        mentions: { type: 'string', description: 'Filter posts mentioning this actor (handle or DID)' },
+        author: { type: 'string', description: 'Filter posts by this author (handle or DID)' },
+        lang: { type: 'string', description: 'Filter by language code (e.g. "en", "ja", "es")' }
+      },
+      required: ['query']
+    }
+  },
+
+  // ── Account / Preferences ──────────────────────────────────────────────────
+
+  {
+    name: 'get_preferences',
+    description: 'Get private account preferences (content filters, feed settings, saved feeds, moderation). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+
+  // ── Bookmarks ──────────────────────────────────────────────────────────────
+
+  {
+    name: 'create_bookmark',
+    description: 'Save a post as a private bookmark on your account. Only app.bsky.feed.post records are supported. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI to bookmark (at://...)', pattern: '^at://' }
+      },
+      required: ['uri']
+    }
+  },
+  {
+    name: 'delete_bookmark',
+    description: 'Remove a saved bookmark by its ID. Get bookmark IDs from get_bookmarks. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Bookmark ID to delete (returned by create_bookmark or get_bookmarks)' }
+      },
+      required: ['id']
+    }
+  },
+  {
+    name: 'get_bookmarks',
+    description: 'List all private bookmarks on your account with pagination. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of bookmarks to return (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
+      }
+    }
+  },
+
+  // ── Age Assurance ──────────────────────────────────────────────────────────
+
+  {
+    name: 'begin_age_assurance',
+    description: 'Initiate the Age Assurance flow for the authenticated account. Used for age verification on Bluesky. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_age_assurance_config',
+    description: 'Get the Age Assurance configuration for the current account (provider info, requirements, etc.). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_age_assurance_state',
+    description: 'Get the current Age Assurance state/status for the authenticated account (verified, pending, etc.). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+
+  // ── Utility ────────────────────────────────────────────────────────────────
+
   {
     name: 'test_connectivity',
-    description: 'Test the connection to Bluesky and check authentication status. Use to verify credentials are working.',
+    description: 'Test the connection to Bluesky and check if authentication is working correctly.',
     inputSchema: {
       type: 'object',
       properties: {}
     }
   }
+
 ];
 
-/**
- * Get tool definition by name
- */
 export function getToolDefinition(name: string): ToolDefinition | undefined {
   return toolDefinitions.find(t => t.name === name);
 }
 
-/**
- * Get all tool names
- */
 export function getAllToolNames(): string[] {
   return toolDefinitions.map(t => t.name);
 }
