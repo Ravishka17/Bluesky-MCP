@@ -20,13 +20,17 @@ import type {
   ToolResult
 } from './types';
 
-// Use authenticated client if available, otherwise fall back to public API
+/**
+ * If the client is already authenticated, use it directly (works for all endpoints).
+ * Otherwise fall back to the public API (unauthenticated, read-only endpoints only).
+ */
 function getPublicClient(client: BlueskyClient): BlueskyClient {
   return client.isLoggedIn() ? client : new BlueskyClient('https://public.api.bsky.app');
 }
 
 export async function handleCreatePost(client: BlueskyClient, params: CreatePostInput): Promise<ToolResult> {
   try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required. Provide Bluesky credentials.' };
     const validation = validatePostText(params.text);
     if (!validation.valid || !validation.text) return { success: false, error: validation.error };
     const result = await client.createPost(validation.text, {
@@ -54,7 +58,7 @@ export async function handleGetTimeline(client: BlueskyClient, params: GetTimeli
 
 export async function handleGetFeed(client: BlueskyClient, params: GetFeedInput): Promise<ToolResult> {
   try {
-    if (!params.feed || !params.feed.startsWith('at://')) return { success: false, error: 'Invalid feed URI format' };
+    if (!params.feed || !params.feed.startsWith('at://')) return { success: false, error: 'Invalid feed URI format. Must start with at://' };
     const result = await getPublicClient(client).getFeed({
       feed: params.feed,
       cursor: sanitizeCursor(params.cursor),
@@ -156,7 +160,10 @@ export async function handleSearchPosts(client: BlueskyClient, params: SearchPos
       q: sanitizeString(params.query),
       cursor: sanitizeCursor(params.cursor),
       limit: sanitizeLimit(params.limit, DEFAULT_LIMIT),
-      sort: params.sort
+      sort: params.sort,
+      mentions: params.mentions,
+      author: params.author,
+      lang: params.lang
     });
     return { success: true, data: result };
   } catch (error) {
@@ -174,7 +181,7 @@ export async function handleGetPosts(client: BlueskyClient, params: { uris: stri
       const validation = validateAtUri(uri);
       if (validation.valid && validation.uri) validUris.push(validation.uri);
     }
-    if (validUris.length === 0) return { success: false, error: 'No valid URIs provided' };
+    if (validUris.length === 0) return { success: false, error: 'No valid AT Protocol URIs provided (must start with at://)' };
     const result = await getPublicClient(client).getPosts(validUris);
     return { success: true, data: result };
   } catch (error) {
@@ -239,7 +246,16 @@ export async function handleTestConnectivity(client: BlueskyClient): Promise<Too
       return { success: true, data: { connected: false, authenticated: client.isLoggedIn(), error: result.error } };
     }
     const sessionInfo = client.getSessionInfo();
-    return { success: true, data: { connected: true, authenticated: sessionInfo.authenticated, did: sessionInfo.did, handle: sessionInfo.handle, serviceUrl: 'https://bsky.social' } };
+    return {
+      success: true,
+      data: {
+        connected: true,
+        authenticated: sessionInfo.authenticated,
+        did: sessionInfo.did,
+        handle: sessionInfo.handle,
+        serviceUrl: 'https://bsky.social'
+      }
+    };
   } catch (error) {
     return { success: false, error: formatError(error) };
   }
@@ -265,7 +281,8 @@ export async function handleGetPreferences(client: BlueskyClient): Promise<ToolR
   }
 }
 
-export const toolHandlers: Record<string, Function> = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult>> = {
   create_post: handleCreatePost,
   get_timeline: handleGetTimeline,
   get_feed: handleGetFeed,
