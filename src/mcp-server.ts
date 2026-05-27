@@ -140,10 +140,10 @@ function getUsageGuidePrompt(task?: string): string {
   const t = (task || '').toLowerCase();
   if (t.includes('search')) return `Use search_posts for keyword search, search_actors for users, search_actors_typeahead for autocomplete.`;
   if (t.includes('post')) return `Use create_post with text (max 300 chars). Optionally set langs and reply.`;
-  if (t.includes('profile')) return `Use get_profile for a single user, get_profiles for batch lookup.`;
+  if (t.includes('profile')) return `Use get_profile for a single user, get_profiles for batch lookup (up to 25 actors).`;
   if (t.includes('feed')) return `Use get_timeline (auth), get_feed (at:// URI), or get_author_feed.`;
   if (t.includes('thread')) return `Use get_thread with a post URI. Control depth and parentHeight.`;
-  return `Tools: create_post, get_timeline, get_feed, get_author_feed, get_thread, get_profile, get_profiles, search_posts, search_actors, search_actors_typeahead, get_posts, get_likes, get_reposted_by, like_post, repost_post, get_suggestions, test_connectivity.`;
+  return `Tools: create_post, get_timeline, get_feed, get_author_feed, get_thread, get_profile, get_profiles, search_posts, search_actors, search_actors_typeahead, get_posts, get_likes, get_reposted_by, like_post, repost_post, get_suggestions, get_preferences, test_connectivity.`;
 }
 
 function getSearchPostsPrompt(topic?: string): string {
