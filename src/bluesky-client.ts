@@ -380,11 +380,8 @@ export class BlueskyClient {
    */
   async testConnectivity(): Promise<{ connected: boolean; error?: string }> {
     try {
-      // Just check if we can reach the server
-      const response = await this.agent.com.atproto.server.describeServer({});
-      return {
-        connected: true
-      };
+      await this.agent.com.atproto.server.describeServer({});
+      return { connected: true };
     } catch (error) {
       return {
         connected: false,
@@ -418,11 +415,141 @@ export class BlueskyClient {
     if (!this.isLoggedIn()) {
       throw new Error('Not authenticated');
     }
+
     try {
       const response = await this.agent.app.bsky.actor.getPreferences({});
       return { preferences: response.data.preferences };
     } catch (error) {
       throw new Error(`Failed to get preferences: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create a private bookmark for a post (requires auth)
+   * Only app.bsky.feed.post records are supported
+   */
+  async createBookmark(uri: string): Promise<{ id: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'app.bsky.bookmark.createBookmark',
+        {},
+        { uri },
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create bookmark: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Delete a bookmark by ID (requires auth)
+   */
+  async deleteBookmark(id: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'app.bsky.bookmark.deleteBookmark',
+        {},
+        { id },
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to delete bookmark: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get all private bookmarks for the account (requires auth)
+   */
+  async getBookmarks(cursor?: string, limit = 50): Promise<{ bookmarks: unknown[]; cursor?: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.bookmark.getBookmarks',
+        { cursor, limit }
+      );
+      return {
+        bookmarks: response.data.bookmarks ?? [],
+        cursor: response.data.cursor
+      };
+    } catch (error) {
+      throw new Error(`Failed to get bookmarks: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Initiate Age Assurance flow for the account (requires auth)
+   */
+  async beginAgeAssurance(): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'app.bsky.ageassurance.begin',
+        {},
+        {},
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to begin age assurance: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get Age Assurance configuration for the account (requires auth)
+   */
+  async getAgeAssuranceConfig(): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.ageassurance.getConfig',
+        {}
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get age assurance config: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get current Age Assurance state/status for the account (requires auth)
+   */
+  async getAgeAssuranceState(): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.ageassurance.getState',
+        {}
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get age assurance state: ${formatError(error)}`);
     }
   }
 
