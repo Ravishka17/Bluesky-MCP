@@ -20,7 +20,7 @@ export const toolDefinitions: ToolDefinition[] = [
   // --- Post Operations ---
   {
     name: 'create_post',
-    description: 'Create a new post on Bluesky. Returns the URI and CID of the created post.',
+    description: 'Create a new post on Bluesky. Returns the URI and CID of the created post. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -54,7 +54,7 @@ export const toolDefinitions: ToolDefinition[] = [
   // --- Feed Operations ---
   {
     name: 'get_timeline',
-    description: 'Get the authenticated user\'s home timeline (chronological feed from followed users). Requires authentication.',
+    description: "Get the authenticated user's home timeline (chronological feed from followed users). Requires authentication.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -106,7 +106,7 @@ export const toolDefinitions: ToolDefinition[] = [
       properties: {
         actor: {
           type: 'string',
-          description: 'The actor\'s DID or handle (e.g., did:plc:xxx or handle.bsky.social)'
+          description: "The actor's DID or handle (e.g., did:plc:xxx or handle.bsky.social)"
         },
         filter: {
           type: 'string',
@@ -164,13 +164,13 @@ export const toolDefinitions: ToolDefinition[] = [
   // --- Profile Operations ---
   {
     name: 'get_profile',
-    description: 'Get detailed profile information for a user (bio, follower/following counts, avatar, etc.).',
+    description: 'Get detailed profile information for a single user (bio, follower/following counts, avatar, etc.). Public endpoint — works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
         actor: {
           type: 'string',
-          description: 'The actor\'s DID or handle'
+          description: "The actor's DID or handle (e.g., handle.bsky.social or did:plc:xxx)"
         }
       },
       required: ['actor']
@@ -178,14 +178,14 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'get_profiles',
-    description: 'Get profiles for multiple users at once (batch operation for efficiency).',
+    description: 'Get detailed profile views for multiple users at once (batch operation, up to 25 actors). Public endpoint — works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
         actors: {
           type: 'array',
           items: { type: 'string' },
-          description: 'Array of actor DIDs or handles',
+          description: 'Array of actor DIDs or handles (e.g., ["handle.bsky.social", "did:plc:xxx"])',
           maxItems: 25
         }
       },
@@ -193,10 +193,10 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
 
-  // --- Search Operations (AI Search Engine) ---
+  // --- Search Operations ---
   {
     name: 'search_actors',
-    description: 'Search for Bluesky users/actors by name or handle. Great for finding people on the platform.',
+    description: 'Search for Bluesky users/actors by name or handle. Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -218,7 +218,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'search_actors_typeahead',
-    description: 'Quick actor search for autocomplete (typeahead). Returns suggestions as you type.',
+    description: 'Quick actor search for autocomplete (typeahead). Returns suggestions as you type. Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -240,7 +240,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'search_posts',
-    description: 'Search for posts by keyword. Core search engine functionality for AI agents. Returns posts matching the query with engagement stats.',
+    description: 'Search for posts by keyword, hashtag, author, language, or mentions. Works with or without authentication. Returns posts with engagement stats.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -263,20 +263,20 @@ export const toolDefinitions: ToolDefinition[] = [
         sort: {
           type: 'string',
           enum: ['latest', 'top'],
-          description: 'Sort by latest or top (most likes)',
+          description: 'Sort by latest or top (most engagement)',
           default: 'latest'
         },
         mentions: {
           type: 'string',
-          description: 'Filter by mentioned user'
+          description: 'Filter posts that mention this actor (handle or DID)'
         },
         author: {
           type: 'string',
-          description: 'Filter by author handle or DID'
+          description: 'Filter posts by this author (handle or DID)'
         },
         lang: {
           type: 'string',
-          description: 'Filter by language code (e.g., "en", "ja")'
+          description: 'Filter by language code (e.g., "en", "ja", "es")'
         }
       },
       required: ['query']
@@ -286,7 +286,7 @@ export const toolDefinitions: ToolDefinition[] = [
   // --- Post Interactions ---
   {
     name: 'get_posts',
-    description: 'Get specific posts by their URIs. Use to fetch posts you have references to.',
+    description: 'Get specific posts by their AT Protocol URIs. Use to fetch posts you have references to. Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -302,13 +302,13 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'get_likes',
-    description: 'Get the list of users who liked a specific post.',
+    description: 'Get the list of users who liked a specific post. Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
         uri: {
           type: 'string',
-          description: 'Post URI',
+          description: 'Post URI (at://...)',
           pattern: '^at://'
         },
         cursor: {
@@ -328,13 +328,13 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'get_reposted_by',
-    description: 'Get the list of users who reposted a specific post.',
+    description: 'Get the list of users who reposted a specific post. Works with or without authentication.',
     inputSchema: {
       type: 'object',
       properties: {
         uri: {
           type: 'string',
-          description: 'Post URI',
+          description: 'Post URI (at://...)',
           pattern: '^at://'
         },
         cursor: {
@@ -359,7 +359,7 @@ export const toolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         uri: { type: 'string', description: 'Post URI (at://...)' },
-        cid: { type: 'string', description: 'Post CID' }
+        cid: { type: 'string', description: 'Post CID (content identifier)' }
       },
       required: ['uri', 'cid']
     }
@@ -371,24 +371,16 @@ export const toolDefinitions: ToolDefinition[] = [
       type: 'object',
       properties: {
         uri: { type: 'string', description: 'Post URI (at://...)' },
-        cid: { type: 'string', description: 'Post CID' }
+        cid: { type: 'string', description: 'Post CID (content identifier)' }
       },
       required: ['uri', 'cid']
     }
   },
+
+  // --- Account Operations ---
   {
     name: 'get_preferences',
-    description: 'Get private preferences for the authenticated account (content filters, feed settings, saved feeds, etc.). Requires authentication.',
-    inputSchema: {
-      type: 'object',
-      properties: {}
-    }
-  },
-
-  // --- Utility ---
-  {
-    name: 'test_connectivity',
-    description: 'Test the connection to Bluesky and check authentication status. Use to verify credentials.',
+    description: 'Get private preferences for the authenticated account. Includes content filters, feed settings, saved feeds, and moderation preferences. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {}
@@ -396,7 +388,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'get_suggestions',
-    description: 'Get suggested users to follow (similar accounts based on your activity). Requires authentication.',
+    description: 'Get suggested users to follow based on your activity. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -408,6 +400,16 @@ export const toolDefinitions: ToolDefinition[] = [
           default: 10
         }
       }
+    }
+  },
+
+  // --- Utility ---
+  {
+    name: 'test_connectivity',
+    description: 'Test the connection to Bluesky and check authentication status. Use to verify credentials are working.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
     }
   }
 ];
