@@ -156,14 +156,6 @@ BLUESKY_CREDENTIALS=yourname.bsky.social:your-app-password
 **Hermes Agent** example (`config.yaml`):
 ```yaml
 mcp_servers:
-  wikipedia:
-    url: https://wikipedia-mcp-zeta.vercel.app/mcp
-    headers:
-      Accept: application/json, text/event-stream
-  github:
-    url: https://api.githubcopilot.com/mcp/
-    headers:
-      Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}
   bluesky:
     url: https://your-app.vercel.app/mcp
     headers:
