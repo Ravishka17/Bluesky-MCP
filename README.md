@@ -138,6 +138,8 @@ BLUESKY_CREDENTIALS=yourname.bsky.social:your-app-password
 
 ### YAML-based clients (config.yaml)
 
+For tools like **Hermes Agent** (Nous Research) and other YAML-configured MCP clients:
+
 ```yaml
 mcp_servers:
   bluesky:
@@ -146,9 +148,26 @@ mcp_servers:
       X-BLUESKY-CREDENTIALS: "${BLUESKY_CREDENTIALS}"
 ```
 
-Set in your shell or `.env`:
+Set in your shell or `.env` file:
 ```
 BLUESKY_CREDENTIALS=yourname.bsky.social:your-app-password
+```
+
+**Hermes Agent** example (`config.yaml`):
+```yaml
+mcp_servers:
+  wikipedia:
+    url: https://wikipedia-mcp-zeta.vercel.app/mcp
+    headers:
+      Accept: application/json, text/event-stream
+  github:
+    url: https://api.githubcopilot.com/mcp/
+    headers:
+      Authorization: Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}
+  bluesky:
+    url: https://your-app.vercel.app/mcp
+    headers:
+      X-BLUESKY-CREDENTIALS: "${BLUESKY_CREDENTIALS}"
 ```
 
 ### MCP Playground
@@ -311,6 +330,6 @@ Bluesky-MCP/
 
 ## License
 
-This project is released into the public domain under [The Unlicense](https://unlicense.org).
+This project is released into the public domain under [The Unlicense](./UNLICENSE).
 
 This is free and unencumbered software. Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, for any purpose, commercial or non-commercial, and by any means, without any conditions or restrictions.
