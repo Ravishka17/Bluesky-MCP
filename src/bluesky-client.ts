@@ -19,7 +19,8 @@ import type {
   PostView,
   CreatePostResult,
   SearchPostsOptions,
-  SearchPostsResult
+  SearchPostsResult,
+  SearchAccountsInput
 } from './types';
 import { formatError } from './utils';
 
@@ -550,6 +551,135 @@ export class BlueskyClient {
       return response.data;
     } catch (error) {
       throw new Error(`Failed to get age assurance state: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Delete a post by URI or rkey (requires auth)
+   */
+  async deletePost(uriOrRkey: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    let rkey: string;
+    if (uriOrRkey.startsWith('at://')) {
+      const match = uriOrRkey.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/);
+      if (!match || !match[3]) {
+        throw new Error('Invalid AT Protocol URI: missing rkey');
+      }
+      rkey = match[3];
+    } else {
+      rkey = uriOrRkey;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.repo.deleteRecord',
+        {},
+        {
+          repo: this.session!.did,
+          collection: 'app.bsky.feed.post',
+          rkey
+        },
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to delete post: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create a draft post (requires auth)
+   */
+  async createDraft(text: string, langs?: string[]): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'app.bsky.draft.createDraft',
+        {},
+        { text, langs },
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create draft: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Delete a draft by ID (requires auth)
+   */
+  async deleteDraft(id: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'app.bsky.draft.deleteDraft',
+        {},
+        { id },
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to delete draft: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get drafts (requires auth)
+   */
+  async getDrafts(cursor?: string, limit = 50): Promise<{ drafts: unknown[]; cursor?: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.draft.getDrafts',
+        { cursor, limit }
+      );
+      return {
+        drafts: response.data.drafts ?? [],
+        cursor: response.data.cursor
+      };
+    } catch (error) {
+      throw new Error(`Failed to get drafts: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Search accounts via admin endpoint (requires auth)
+   */
+  async searchAccounts(options: SearchAccountsInput): Promise<{ accounts: unknown[]; cursor?: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'com.atproto.admin.searchAccounts',
+        {
+          email: options.email,
+          cursor: options.cursor,
+          limit: options.limit
+        }
+      );
+      return {
+        accounts: response.data.accounts ?? [],
+        cursor: response.data.cursor
+      };
+    } catch (error) {
+      throw new Error(`Failed to search accounts: ${formatError(error)}`);
     }
   }
 

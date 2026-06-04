@@ -220,6 +220,31 @@ export interface SearchPostsForAIInput {
   limit?: number;
 }
 
+export interface DeletePostInput {
+  uri?: string;
+  rkey?: string;
+}
+
+export interface DraftInput {
+  text: string;
+  langs?: string[];
+}
+
+export interface DeleteDraftInput {
+  id: string;
+}
+
+export interface GetDraftsInput {
+  cursor?: string;
+  limit?: number;
+}
+
+export interface SearchAccountsInput {
+  email?: string;
+  cursor?: string;
+  limit?: number;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;

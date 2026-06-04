@@ -155,6 +155,31 @@ export function validateAtUri(uri: unknown): { valid: boolean; uri?: string; err
 }
 
 /**
+ * Extract the rkey (record key) from an AT Protocol URI
+ */
+export function extractRkeyFromUri(uri: string): string | null {
+  const match = uri.match(/^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/);
+  if (!match) return null;
+  return match[3] || null;
+}
+
+/**
+ * Validate a record key (rkey)
+ */
+export function validateRkey(rkey: unknown): { valid: boolean; rkey?: string; error?: string } {
+  if (typeof rkey !== 'string') {
+    return { valid: false, error: 'Rkey must be a string' };
+  }
+
+  const trimmed = rkey.trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Rkey cannot be empty' };
+  }
+
+  return { valid: true, rkey: trimmed };
+}
+
+/**
  * Escape HTML to prevent XSS
  */
 export function escapeHtml(input: string): string {
@@ -220,6 +245,31 @@ export const SearchPostsSchema = z.object({
 
 export const GetFeedSchema = z.object({
   feed: z.string(),
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(MAX_LIMIT).optional()
+});
+
+export const DeletePostSchema = z.object({
+  uri: z.string().optional(),
+  rkey: z.string().optional()
+});
+
+export const DraftSchema = z.object({
+  text: z.string().min(1).max(MAX_TEXT_LENGTH),
+  langs: z.array(z.string().max(10)).max(5).optional()
+});
+
+export const DeleteDraftSchema = z.object({
+  id: z.string().min(1)
+});
+
+export const GetDraftsSchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.number().int().min(1).max(MAX_LIMIT).optional()
+});
+
+export const SearchAccountsSchema = z.object({
+  email: z.string().email().optional(),
   cursor: z.string().optional(),
   limit: z.number().int().min(1).max(MAX_LIMIT).optional()
 });
