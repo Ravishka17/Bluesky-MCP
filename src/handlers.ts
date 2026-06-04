@@ -5,6 +5,8 @@ import {
   sanitizeLimit,
   validateAtUri,
   validatePostText,
+  validateRkey,
+  extractRkeyFromUri,
   DEFAULT_LIMIT
 } from './sanitize';
 import { formatError } from './utils';
@@ -17,6 +19,11 @@ import type {
   SearchActorsInput,
   SearchPostsInput,
   GetFeedInput,
+  DeletePostInput,
+  DraftInput,
+  DeleteDraftInput,
+  GetDraftsInput,
+  SearchAccountsInput,
   ToolResult
 } from './types';
 
@@ -296,6 +303,86 @@ export async function handleGetAgeAssuranceState(client: BlueskyClient): Promise
   }
 }
 
+// ── Posts (Delete) ────────────────────────────────────────────────────────────
+
+export async function handleDeletePost(client: BlueskyClient, params: DeletePostInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    let rkey: string | undefined;
+    if (params.rkey) {
+      const v = validateRkey(params.rkey);
+      if (!v.valid || !v.rkey) return { success: false, error: v.error };
+      rkey = v.rkey;
+    } else if (params.uri) {
+      const v = validateAtUri(params.uri);
+      if (!v.valid || !v.uri) return { success: false, error: v.error };
+      const extracted = extractRkeyFromUri(v.uri);
+      if (!extracted) return { success: false, error: 'Could not extract rkey from URI' };
+      rkey = extracted;
+    } else {
+      return { success: false, error: 'Either uri or rkey is required' };
+    }
+    await client.deletePost(rkey);
+    return { success: true, data: { deleted: true, rkey } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+// ── Drafts ────────────────────────────────────────────────────────────────────
+
+export async function handleCreateDraft(client: BlueskyClient, params: DraftInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const validation = validatePostText(params.text);
+    if (!validation.valid || !validation.text) return { success: false, error: validation.error };
+    const result = await client.createDraft(
+      validation.text,
+      params.langs?.filter((l): l is string => typeof l === 'string')
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleDeleteDraft(client: BlueskyClient, params: DeleteDraftInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.id) return { success: false, error: 'Draft ID is required' };
+    await client.deleteDraft(sanitizeString(params.id));
+    return { success: true, data: { deleted: true, id: params.id } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetDrafts(client: BlueskyClient, params: GetDraftsInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.getDrafts(sanitizeCursor(params.cursor), sanitizeLimit(params.limit, 50));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+// ── Admin Search ──────────────────────────────────────────────────────────────
+
+export async function handleSearchAccounts(client: BlueskyClient, params: SearchAccountsInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.searchAccounts({
+      email: params.email ? sanitizeString(params.email) : undefined,
+      cursor: sanitizeCursor(params.cursor),
+      limit: sanitizeLimit(params.limit, DEFAULT_LIMIT)
+    });
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 export async function handleTestConnectivity(client: BlueskyClient): Promise<ToolResult> {
@@ -329,6 +416,7 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   get_reposted_by: handleGetRepostedBy,
   like_post: handleLikePost,
   repost_post: handleRepostPost,
+  delete_post: handleDeletePost,
   // Feeds
   get_timeline: handleGetTimeline,
   get_feed: handleGetFeed,
@@ -342,12 +430,17 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   search_actors: handleSearchActors,
   search_actors_typeahead: handleSearchActorsTypeahead,
   search_posts: handleSearchPosts,
+  search_accounts: handleSearchAccounts,
   // Account
   get_preferences: handleGetPreferences,
   // Bookmarks
   create_bookmark: handleCreateBookmark,
   delete_bookmark: handleDeleteBookmark,
   get_bookmarks: handleGetBookmarks,
+  // Drafts
+  create_draft: handleCreateDraft,
+  delete_draft: handleDeleteDraft,
+  get_drafts: handleGetDrafts,
   // Age Assurance
   begin_age_assurance: handleBeginAgeAssurance,
   get_age_assurance_config: handleGetAgeAssuranceConfig,

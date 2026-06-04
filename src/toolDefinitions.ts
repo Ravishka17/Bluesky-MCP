@@ -100,6 +100,17 @@ export const toolDefinitions: ToolDefinition[] = [
       required: ['uri', 'cid']
     }
   },
+  {
+    name: 'delete_post',
+    description: 'Delete a post on Bluesky by its AT Protocol URI or record key (rkey). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Post URI (at://did/app.bsky.feed.post/rkey)', pattern: '^at://' },
+        rkey: { type: 'string', description: 'Record key of the post (alternative to uri)' }
+      }
+    }
+  },
 
   // ── Feeds ──────────────────────────────────────────────────────────────────
 
@@ -238,6 +249,18 @@ export const toolDefinitions: ToolDefinition[] = [
       required: ['query']
     }
   },
+  {
+    name: 'search_accounts',
+    description: 'Search accounts via the admin endpoint (requires admin privileges on the PDS). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Filter by email address', format: 'email' },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of results (1-100, default 20)', minimum: 1, maximum: 100, default: 20 }
+      }
+    }
+  },
 
   // ── Account / Preferences ──────────────────────────────────────────────────
 
@@ -282,6 +305,43 @@ export const toolDefinitions: ToolDefinition[] = [
       properties: {
         cursor: { type: 'string', description: 'Pagination cursor' },
         limit: { type: 'number', description: 'Number of bookmarks to return (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
+      }
+    }
+  },
+
+  // ── Drafts ─────────────────────────────────────────────────────────────────
+
+  {
+    name: 'create_draft',
+    description: 'Create a draft post. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'Draft text content (max 300 characters)', maxLength: 300 },
+        langs: { type: 'array', items: { type: 'string' }, description: 'Language codes, e.g. ["en"]', maxItems: 5 }
+      },
+      required: ['text']
+    }
+  },
+  {
+    name: 'delete_draft',
+    description: 'Delete a draft by its ID. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Draft ID to delete' }
+      },
+      required: ['id']
+    }
+  },
+  {
+    name: 'get_drafts',
+    description: 'List all drafts with pagination. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of drafts to return (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
       }
     }
   },
