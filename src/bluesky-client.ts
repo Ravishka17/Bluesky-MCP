@@ -29,6 +29,7 @@ export class BlueskyClient {
   private session: AuthenticatedSession | null = null;
   private readonly serviceUrl: string;
   private isAuthenticated = false;
+  private readonly BSKY_APPVIEW = 'did:web:api.bsky.app#bsky_appview';
 
   constructor(serviceUrl = 'https://bsky.social') {
     this.serviceUrl = serviceUrl;
@@ -440,7 +441,7 @@ export class BlueskyClient {
         'app.bsky.bookmark.createBookmark',
         {},
         { uri },
-        { encoding: 'application/json' }
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return response.data;
     } catch (error) {
@@ -462,7 +463,7 @@ export class BlueskyClient {
         'app.bsky.bookmark.deleteBookmark',
         {},
         { id },
-        { encoding: 'application/json' }
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
     } catch (error) {
       throw new Error(`Failed to delete bookmark: ${formatError(error)}`);
@@ -481,7 +482,8 @@ export class BlueskyClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (this.agent.api as any).xrpc.get(
         'app.bsky.bookmark.getBookmarks',
-        { cursor, limit }
+        { cursor, limit },
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return {
         bookmarks: response.data.bookmarks ?? [],
@@ -506,7 +508,7 @@ export class BlueskyClient {
         'app.bsky.ageassurance.begin',
         {},
         {},
-        { encoding: 'application/json' }
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return response.data;
     } catch (error) {
@@ -526,7 +528,8 @@ export class BlueskyClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (this.agent.api as any).xrpc.get(
         'app.bsky.ageassurance.getConfig',
-        {}
+        {},
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return response.data;
     } catch (error) {
@@ -546,7 +549,8 @@ export class BlueskyClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (this.agent.api as any).xrpc.get(
         'app.bsky.ageassurance.getState',
-        {}
+        {},
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return response.data;
     } catch (error) {
