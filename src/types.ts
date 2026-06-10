@@ -254,6 +254,49 @@ export interface DeleteBookmarkInput {
   uri: string;
 }
 
+export interface AddReactionInput {
+  convoId: string;
+  messageId: string;
+  value: string;
+}
+
+export interface RemoveReactionInput {
+  convoId: string;
+  messageId: string;
+  value: string;
+}
+
+export interface GetMessagesInput {
+  convoId: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export interface SendMessageInput {
+  convoId: string;
+  message: {
+    text: string;
+  };
+}
+
+export interface SendMessageBatchInput {
+  items: Array<{
+    convoId: string;
+    message: {
+      text: string;
+    };
+  }>;
+}
+
+export interface GetMessageContextInput {
+  messageId: string;
+}
+
+export interface UpdateEmailInput {
+  email: string;
+  token?: string;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;

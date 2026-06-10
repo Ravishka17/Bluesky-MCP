@@ -294,6 +294,119 @@ export const toolDefinitions: ToolDefinition[] = [
       properties: {}
     }
   },
+  {
+    name: 'update_email',
+    description: 'Update the email address associated with the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'New email address', format: 'email' },
+        token: { type: 'string', description: 'Optional verification token (if required by the PDS)' }
+      },
+      required: ['email']
+    }
+  },
+
+  // ── Chat ───────────────────────────────────────────────────────────────────
+
+  {
+    name: 'add_reaction',
+    description: 'Add a reaction (emoji) to a specific message in a Bluesky DM conversation. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        convoId: { type: 'string', description: 'Conversation ID' },
+        messageId: { type: 'string', description: 'Message ID to react to' },
+        value: { type: 'string', description: 'Reaction emoji value' }
+      },
+      required: ['convoId', 'messageId', 'value']
+    }
+  },
+  {
+    name: 'remove_reaction',
+    description: 'Remove a previously added reaction from a message in a Bluesky DM conversation. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        convoId: { type: 'string', description: 'Conversation ID' },
+        messageId: { type: 'string', description: 'Message ID to remove reaction from' },
+        value: { type: 'string', description: 'Reaction emoji value to remove' }
+      },
+      required: ['convoId', 'messageId', 'value']
+    }
+  },
+  {
+    name: 'get_messages',
+    description: 'Get messages in a Bluesky DM conversation with pagination. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        convoId: { type: 'string', description: 'Conversation ID' },
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of messages to return (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
+      },
+      required: ['convoId']
+    }
+  },
+  {
+    name: 'send_message',
+    description: 'Send a text message to a Bluesky DM conversation. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        convoId: { type: 'string', description: 'Conversation ID' },
+        message: {
+          type: 'object',
+          description: 'Message content',
+          properties: {
+            text: { type: 'string', description: 'Message text content', maxLength: 1000 }
+          },
+          required: ['text']
+        }
+      },
+      required: ['convoId', 'message']
+    }
+  },
+  {
+    name: 'send_message_batch',
+    description: 'Send a batch of text messages to multiple Bluesky DM conversations at once. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'Array of messages to send (max 25)',
+          maxItems: 25,
+          items: {
+            type: 'object',
+            properties: {
+              convoId: { type: 'string', description: 'Conversation ID' },
+              message: {
+                type: 'object',
+                properties: {
+                  text: { type: 'string', description: 'Message text content', maxLength: 1000 }
+                },
+                required: ['text']
+              }
+            },
+            required: ['convoId', 'message']
+          }
+        }
+      },
+      required: ['items']
+    }
+  },
+  {
+    name: 'get_message_context',
+    description: 'Get moderation context for a specific chat message (surrounding messages, conversation info). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        messageId: { type: 'string', description: 'Message ID to get context for' }
+      },
+      required: ['messageId']
+    }
+  },
 
   // ── Bookmarks ──────────────────────────────────────────────────────────────
 

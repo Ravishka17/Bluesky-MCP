@@ -20,7 +20,7 @@ const CONTROL_CHARS = /[\u200B-\u200F\uFEFF]/g;
 /**
  * Sanitize a string input by removing dangerous characters
  */
-export function sanitizeString(input: string): string {
+export function sanitizeString(input: string, maxLength?: number): string {
   if (typeof input !== 'string') {
     return '';
   }
@@ -30,7 +30,7 @@ export function sanitizeString(input: string): string {
     .replace(CONTROL_CHARS, '')
     .replace(EXCESSIVE_WHITESPACE, ' ')
     .trim()
-    .slice(0, MAX_TEXT_LENGTH * 2); // Allow some buffer for processing
+    .slice(0, maxLength ?? MAX_TEXT_LENGTH * 2); // Allow some buffer for processing
 }
 
 /**
