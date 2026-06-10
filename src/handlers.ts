@@ -24,6 +24,7 @@ import type {
   DeleteDraftInput,
   GetDraftsInput,
   SearchAccountsInput,
+  CreateBookmarkInput,
   ToolResult
 } from './types';
 
@@ -237,13 +238,14 @@ export async function handleGetPreferences(client: BlueskyClient): Promise<ToolR
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────────
 
-export async function handleCreateBookmark(client: BlueskyClient, params: { uri: string }): Promise<ToolResult> {
+export async function handleCreateBookmark(client: BlueskyClient, params: CreateBookmarkInput): Promise<ToolResult> {
   try {
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
     if (!params.uri) return { success: false, error: 'Post URI is required' };
+    if (!params.cid) return { success: false, error: 'Post CID is required' };
     const v = validateAtUri(params.uri);
     if (!v.valid || !v.uri) return { success: false, error: v.error };
-    const result = await client.createBookmark(v.uri);
+    const result = await client.createBookmark(v.uri, params.cid);
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: formatError(error) };

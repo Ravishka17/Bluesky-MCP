@@ -245,6 +245,11 @@ export interface SearchAccountsInput {
   limit?: number;
 }
 
+export interface CreateBookmarkInput {
+  uri: string;
+  cid: string;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;

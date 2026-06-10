@@ -479,7 +479,7 @@ export class BlueskyClient {
    * Create a private bookmark for a post (requires auth)
    * Only app.bsky.feed.post records are supported
    */
-  async createBookmark(uri: string): Promise<{ id: string }> {
+  async createBookmark(uri: string, cid: string): Promise<{ id: string }> {
     if (!this.isLoggedIn()) {
       throw new Error('Not authenticated');
     }
@@ -488,7 +488,7 @@ export class BlueskyClient {
       return await this.appviewRequest<{ id: string }>(
         'app.bsky.bookmark.createBookmark',
         undefined,
-        { uri }
+        { uri, cid }
       );
     } catch (error) {
       throw new Error(`Failed to create bookmark: ${formatError(error)}`);
