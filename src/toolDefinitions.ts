@@ -78,7 +78,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'like_post',
-    description: 'Like a post on Bluesky. Requires authentication.',
+    description: 'Like a post on Bluesky. Returns the like record URI — save this if you may want to unlike later. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -90,7 +90,7 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'repost_post',
-    description: 'Repost a post on Bluesky. Requires authentication.',
+    description: 'Repost a post on Bluesky. Returns the repost record URI — save this if you may want to un-repost later. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -98,6 +98,28 @@ export const toolDefinitions: ToolDefinition[] = [
         cid: { type: 'string', description: 'Post CID (content identifier)' }
       },
       required: ['uri', 'cid']
+    }
+  },
+  {
+    name: 'unlike_post',
+    description: 'Remove a like from a post on Bluesky by deleting the Like record. Pass the like record URI returned by like_post (e.g. at://did:.../app.bsky.feed.like/rkey), not the original post URI. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Like record URI to delete (at://...)', pattern: '^at://' }
+      },
+      required: ['uri']
+    }
+  },
+  {
+    name: 'unrepost_post',
+    description: 'Remove a repost on Bluesky by deleting the Repost record. Pass the repost record URI returned by repost_post (e.g. at://did:.../app.bsky.feed.repost/rkey), not the original post URI. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        uri: { type: 'string', description: 'Repost record URI to delete (at://...)', pattern: '^at://' }
+      },
+      required: ['uri']
     }
   },
   {
