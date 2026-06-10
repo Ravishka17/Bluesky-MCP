@@ -500,9 +500,9 @@ export class BlueskyClient {
   }
 
   /**
-   * Delete a bookmark by ID (requires auth)
+   * Delete a bookmark by URI (requires auth)
    */
-  async deleteBookmark(id: string): Promise<void> {
+  async deleteBookmark(uri: string): Promise<void> {
     if (!this.isLoggedIn()) {
       throw new Error('Not authenticated');
     }
@@ -511,7 +511,7 @@ export class BlueskyClient {
       await this.appviewRequest<void>(
         'app.bsky.bookmark.deleteBookmark',
         undefined,
-        { id }
+        { uri }
       );
     } catch (error) {
       throw new Error(`Failed to delete bookmark: ${formatError(error)}`);

@@ -289,13 +289,13 @@ export const toolDefinitions: ToolDefinition[] = [
   },
   {
     name: 'delete_bookmark',
-    description: 'Remove a saved bookmark by its ID. Get bookmark IDs from get_bookmarks. Requires authentication.',
+    description: 'Remove a saved bookmark by its post URI. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
-        id: { type: 'string', description: 'Bookmark ID to delete (returned by create_bookmark or get_bookmarks)' }
+        uri: { type: 'string', description: 'Post URI of the bookmark to delete (at://...)', pattern: '^at://' }
       },
-      required: ['id']
+      required: ['uri']
     }
   },
   {

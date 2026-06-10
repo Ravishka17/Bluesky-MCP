@@ -222,7 +222,7 @@ Configure transport type `streamable-http` with the endpoint URL and any of the 
 | Tool | Description | Auth Required |
 |------|-------------|:---:|
 | `create_bookmark` | Save a post as a private bookmark | ✅ |
-| `delete_bookmark` | Remove a bookmark by ID | ✅ |
+| `delete_bookmark` | Remove a bookmark by URI | ✅ |
 | `get_bookmarks` | List all private bookmarks | ✅ |
 
 ### Age Assurance Operations
