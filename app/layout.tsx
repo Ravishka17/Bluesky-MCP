@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Bluesky MCP Server",
   description: "Model Context Protocol server for Bluesky",
+  metadataBase: new URL(`https://${process.env.VERCEL_URL || "bluesky-mcp.vercel.app"}`),
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -12,6 +13,19 @@ export const metadata: Metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
+  openGraph: {
+    title: "Bluesky MCP Server",
+    description: "Model Context Protocol server for Bluesky",
+    images: [{ url: "/bluesky-logo.png", alt: "Bluesky MCP Server" }],
+    type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Bluesky MCP Server",
+    description: "Model Context Protocol server for Bluesky",
+    images: ["/bluesky-logo.png"],
+  },
 };
 
 export default function RootLayout({
