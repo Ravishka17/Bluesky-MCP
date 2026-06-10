@@ -133,7 +133,11 @@ export class BlueskyClient {
       throw new Error(message);
     }
 
-    return response.json() as Promise<T>;
+    const text = await response.text();
+    if (text.trim().length === 0) {
+      return undefined as T;
+    }
+    return JSON.parse(text) as T;
   }
 
   /**
@@ -479,7 +483,7 @@ export class BlueskyClient {
    * Create a private bookmark for a post (requires auth)
    * Only app.bsky.feed.post records are supported
    */
-  async createBookmark(uri: string, cid: string): Promise<{ id: string }> {
+  async createBookmark(uri: string, cid: string): Promise<{ id: string } | undefined> {
     if (!this.isLoggedIn()) {
       throw new Error('Not authenticated');
     }
@@ -523,10 +527,11 @@ export class BlueskyClient {
     }
 
     try {
-      return await this.appviewRequest<{ bookmarks: unknown[]; cursor?: string }>(
+      const result = await this.appviewRequest<{ bookmarks: unknown[]; cursor?: string }>(
         'app.bsky.bookmark.getBookmarks',
         { cursor, limit }
       );
+      return result ?? { bookmarks: [] };
     } catch (error) {
       throw new Error(`Failed to get bookmarks: ${formatError(error)}`);
     }
