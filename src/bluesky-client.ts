@@ -431,6 +431,40 @@ export class BlueskyClient {
   }
 
   /**
+   * Unlike a post by deleting the Like record (requires auth).
+   * The uri must be the like record URI returned from like(), e.g.
+   * at://did:plc:.../app.bsky.feed.like/rkey — not the original post URI.
+   */
+  async deleteLike(uri: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await this.agent.deleteLike(uri);
+    } catch (error) {
+      throw new Error(`Failed to unlike post: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Un-repost a post by deleting the Repost record (requires auth).
+   * The uri must be the repost record URI returned from repost(), e.g.
+   * at://did:plc:.../app.bsky.feed.repost/rkey — not the original post URI.
+   */
+  async deleteRepost(uri: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await this.agent.deleteRepost(uri);
+    } catch (error) {
+      throw new Error(`Failed to un-repost post: ${formatError(error)}`);
+    }
+  }
+
+  /**
    * Test connectivity to Bluesky
    */
   async testConnectivity(): Promise<{ connected: boolean; error?: string }> {
