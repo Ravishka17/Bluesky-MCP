@@ -144,7 +144,7 @@ function getUsageGuidePrompt(task?: string): string {
   if (t.includes('feed')) return `Use get_timeline (auth), get_feed (at:// URI), or get_author_feed.`;
   if (t.includes('thread')) return `Use get_thread with a post URI. Control depth and parentHeight.`;
   if (t.includes('draft')) return `Use create_draft to save a draft, get_drafts to list drafts, delete_draft to remove a draft by ID.`;
-  return `Tools: create_post, delete_post, get_timeline, get_feed, get_author_feed, get_thread, get_profile, get_profiles, search_posts, search_actors, search_actors_typeahead, search_accounts, get_posts, get_likes, get_reposted_by, like_post, repost_post, get_suggestions, get_preferences, create_draft, delete_draft, get_drafts, create_bookmark, delete_bookmark, get_bookmarks, begin_age_assurance, get_age_assurance_config, get_age_assurance_state, test_connectivity.`;
+  return `Tools: create_post, delete_post, get_timeline, get_feed, get_author_feed, get_thread, get_profile, get_profiles, search_posts, search_actors, search_actors_typeahead, search_accounts, get_posts, get_likes, get_reposted_by, like_post, unlike_post, repost_post, unrepost_post, get_suggestions, get_preferences, create_draft, delete_draft, get_drafts, create_bookmark, delete_bookmark, get_bookmarks, begin_age_assurance, get_age_assurance_config, get_age_assurance_state, test_connectivity.`;
 }
 
 function getSearchPostsPrompt(topic?: string): string {
