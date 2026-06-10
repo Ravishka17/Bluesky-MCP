@@ -297,6 +297,69 @@ export interface UpdateEmailInput {
   token?: string;
 }
 
+export interface AdminSendEmailInput {
+  recipientDid: string;
+  content: string;
+  subject?: string;
+  senderDid?: string;
+  comment?: string;
+}
+
+export interface ConfirmEmailInput {
+  email: string;
+  token: string;
+}
+
+export interface CreateAccountInput {
+  email: string;
+  handle: string;
+  password: string;
+  inviteCode?: string;
+  verificationCode?: string;
+  verificationPhone?: string;
+  plcOp?: Record<string, unknown>;
+}
+
+export interface CreateAppPasswordInput {
+  name: string;
+}
+
+export interface CreateInviteCodeInput {
+  forAccount?: string;
+  useCount?: number;
+}
+
+export interface CreateInviteCodesInput {
+  codeCount?: number;
+  useCount?: number;
+  forAccounts?: string[];
+}
+
+export interface CreateSessionInput {
+  identifier: string;
+  password: string;
+  authFactorToken?: string;
+}
+
+export interface DeactivateAccountInput {
+  deleteAfter?: string;
+}
+
+export interface DeleteAccountInput {
+  password: string;
+}
+
+export interface GetAccountInviteCodesInput {
+  includeUsed?: boolean;
+  createAvailable?: boolean;
+}
+
+export interface GetServiceAuthInput {
+  aud: string;
+  lxm?: string;
+  exp?: number;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;

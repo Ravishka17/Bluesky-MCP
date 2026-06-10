@@ -307,6 +307,185 @@ export const toolDefinitions: ToolDefinition[] = [
     }
   },
 
+  // ── Server / Account Management ─────────────────────────────────────────────
+
+  {
+    name: 'admin_send_email',
+    description: 'Send an email as a PDS admin. Requires authentication and admin privileges.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        recipientDid: { type: 'string', description: 'DID of the recipient' },
+        content: { type: 'string', description: 'Email body content' },
+        subject: { type: 'string', description: 'Email subject line' },
+        senderDid: { type: 'string', description: 'DID of the sender (optional)' },
+        comment: { type: 'string', description: 'Internal comment (optional)' }
+      },
+      required: ['recipientDid', 'content']
+    }
+  },
+  {
+    name: 'confirm_email',
+    description: 'Confirm an email address using a verification token. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Email address to confirm', format: 'email' },
+        token: { type: 'string', description: 'Verification token' }
+      },
+      required: ['email', 'token']
+    }
+  },
+  {
+    name: 'create_account',
+    description: 'Create a new Bluesky/AT Protocol account. No authentication required.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', description: 'Email address for the new account', format: 'email' },
+        handle: { type: 'string', description: 'Desired handle (e.g. name.bsky.social)' },
+        password: { type: 'string', description: 'Account password' },
+        inviteCode: { type: 'string', description: 'Invite code (if required by the PDS)' },
+        verificationCode: { type: 'string', description: 'Verification code (optional)' },
+        verificationPhone: { type: 'string', description: 'Verification phone number (optional)' },
+        plcOp: { type: 'object', description: 'PLC operation object (optional)' }
+      },
+      required: ['email', 'handle', 'password']
+    }
+  },
+  {
+    name: 'create_app_password',
+    description: 'Create a new app password for the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Human-readable name for the app password' }
+      },
+      required: ['name']
+    }
+  },
+  {
+    name: 'create_invite_code',
+    description: 'Create a single invite code. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        forAccount: { type: 'string', description: 'DID of the account the code is for (optional)' },
+        useCount: { type: 'number', description: 'Number of times the code can be used', minimum: 1 }
+      }
+    }
+  },
+  {
+    name: 'create_invite_codes',
+    description: 'Create multiple invite codes at once. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        codeCount: { type: 'number', description: 'Number of codes to create', minimum: 1 },
+        useCount: { type: 'number', description: 'Number of uses per code', minimum: 1 },
+        forAccounts: { type: 'array', items: { type: 'string' }, description: 'DIDs to create codes for' }
+      }
+    }
+  },
+  {
+    name: 'create_session',
+    description: 'Create an authentication session with a Bluesky PDS. Returns access and refresh tokens. No authentication required.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string', description: 'Handle or email address' },
+        password: { type: 'string', description: 'Account password or app password' },
+        authFactorToken: { type: 'string', description: 'Two-factor auth token (optional)' }
+      },
+      required: ['identifier', 'password']
+    }
+  },
+  {
+    name: 'deactivate_account',
+    description: 'Deactivate the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deleteAfter: { type: 'string', description: 'ISO 8601 timestamp for when to permanently delete the account (optional)' }
+      }
+    }
+  },
+  {
+    name: 'delete_account',
+    description: 'Permanently delete the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        password: { type: 'string', description: 'Account password for confirmation' }
+      },
+      required: ['password']
+    }
+  },
+  {
+    name: 'delete_session',
+    description: 'Delete the current authentication session (invalidate access token). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'describe_server',
+    description: 'Get information about the PDS server (available user domains, contact info, etc.). No authentication required.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'get_account_invite_codes',
+    description: 'Get invite codes associated with the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        includeUsed: { type: 'boolean', description: 'Include already-used codes' },
+        createAvailable: { type: 'boolean', description: 'Create new codes if available' }
+      }
+    }
+  },
+  {
+    name: 'get_service_auth',
+    description: 'Get a signed JWT token for service-to-service authentication. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        aud: { type: 'string', description: 'DID of the audience service' },
+        lxm: { type: 'string', description: 'Lexicon method this token is for (optional)' },
+        exp: { type: 'number', description: 'Expiration time in seconds from now (optional)' }
+      },
+      required: ['aud']
+    }
+  },
+  {
+    name: 'get_session',
+    description: 'Get details about the current authenticated session. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'list_app_passwords',
+    description: 'List all app passwords for the authenticated account. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+  {
+    name: 'refresh_session',
+    description: 'Refresh the current authentication session using the refresh token. Returns new access and refresh tokens. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {}
+    }
+  },
+
   // ── Chat ───────────────────────────────────────────────────────────────────
 
   {
