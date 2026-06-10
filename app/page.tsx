@@ -25,10 +25,10 @@ export default function Home() {
           borderRadius: "24px",
         }}
       />
-      <h1 style={{ fontSize: "2.5rem", margin: "0 0 0.75rem" }}>
+      <h1 style={{ fontSize: "2.5rem", margin: "0 0 0.75rem", textAlign: "center" }}>
         Bluesky MCP Server
       </h1>
-      <p style={{ color: "#888", margin: 0, fontSize: "1.1rem" }}>
+      <p style={{ color: "#888", margin: 0, fontSize: "1.1rem", textAlign: "center" }}>
         Model Context Protocol server for Bluesky
       </p>
       <div
