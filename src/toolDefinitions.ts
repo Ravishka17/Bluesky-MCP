@@ -281,9 +281,10 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        uri: { type: 'string', description: 'Post URI to bookmark (at://...)', pattern: '^at://' }
+        uri: { type: 'string', description: 'Post URI to bookmark (at://...)', pattern: '^at://' },
+        cid: { type: 'string', description: 'Post CID (content identifier)' }
       },
-      required: ['uri']
+      required: ['uri', 'cid']
     }
   },
   {
