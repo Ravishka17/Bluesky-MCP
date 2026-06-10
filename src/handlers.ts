@@ -25,6 +25,7 @@ import type {
   GetDraftsInput,
   SearchAccountsInput,
   CreateBookmarkInput,
+  DeleteBookmarkInput,
   ToolResult
 } from './types';
 
@@ -252,12 +253,13 @@ export async function handleCreateBookmark(client: BlueskyClient, params: Create
   }
 }
 
-export async function handleDeleteBookmark(client: BlueskyClient, params: { id: string }): Promise<ToolResult> {
+export async function handleDeleteBookmark(client: BlueskyClient, params: DeleteBookmarkInput): Promise<ToolResult> {
   try {
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
-    if (!params.id) return { success: false, error: 'Bookmark ID is required' };
-    await client.deleteBookmark(sanitizeString(params.id));
-    return { success: true, data: { deleted: true, id: params.id } };
+    const v = validateAtUri(params.uri);
+    if (!v.valid || !v.uri) return { success: false, error: v.error };
+    await client.deleteBookmark(v.uri);
+    return { success: true, data: { deleted: true, uri: params.uri } };
   } catch (error) {
     return { success: false, error: formatError(error) };
   }

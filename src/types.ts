@@ -250,6 +250,10 @@ export interface CreateBookmarkInput {
   cid: string;
 }
 
+export interface DeleteBookmarkInput {
+  uri: string;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;
