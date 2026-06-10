@@ -33,6 +33,17 @@ import type {
   SendMessageBatchInput,
   GetMessageContextInput,
   UpdateEmailInput,
+  AdminSendEmailInput,
+  ConfirmEmailInput,
+  CreateAccountInput,
+  CreateAppPasswordInput,
+  CreateInviteCodeInput,
+  CreateInviteCodesInput,
+  CreateSessionInput,
+  DeactivateAccountInput,
+  DeleteAccountInput,
+  GetAccountInviteCodesInput,
+  GetServiceAuthInput,
   ToolResult
 } from './types';
 
@@ -536,6 +547,206 @@ export async function handleUpdateEmail(client: BlueskyClient, params: UpdateEma
   }
 }
 
+// ── Server / Account Management ───────────────────────────────────────────────
+
+export async function handleAdminSendEmail(client: BlueskyClient, params: AdminSendEmailInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.recipientDid) return { success: false, error: 'recipientDid is required' };
+    if (!params.content) return { success: false, error: 'content is required' };
+    const result = await client.adminSendEmail(
+      sanitizeString(params.recipientDid),
+      sanitizeString(params.content),
+      params.subject ? sanitizeString(params.subject) : undefined,
+      params.senderDid ? sanitizeString(params.senderDid) : undefined,
+      params.comment ? sanitizeString(params.comment) : undefined
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleConfirmEmail(client: BlueskyClient, params: ConfirmEmailInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.email) return { success: false, error: 'email is required' };
+    if (!params.token) return { success: false, error: 'token is required' };
+    await client.confirmEmail(sanitizeString(params.email), sanitizeString(params.token));
+    return { success: true, data: { confirmed: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleCreateAccount(client: BlueskyClient, params: CreateAccountInput): Promise<ToolResult> {
+  try {
+    if (!params.email) return { success: false, error: 'email is required' };
+    if (!params.handle) return { success: false, error: 'handle is required' };
+    if (!params.password) return { success: false, error: 'password is required' };
+    const result = await client.createAccount(
+      sanitizeString(params.email),
+      sanitizeString(params.handle),
+      params.password,
+      params.inviteCode ? sanitizeString(params.inviteCode) : undefined,
+      params.verificationCode ? sanitizeString(params.verificationCode) : undefined,
+      params.verificationPhone ? sanitizeString(params.verificationPhone) : undefined,
+      params.plcOp
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleCreateAppPassword(client: BlueskyClient, params: CreateAppPasswordInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.name) return { success: false, error: 'name is required' };
+    const result = await client.createAppPassword(sanitizeString(params.name));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleCreateInviteCode(client: BlueskyClient, params: CreateInviteCodeInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.createInviteCode(
+      params.forAccount ? sanitizeString(params.forAccount) : undefined,
+      params.useCount
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleCreateInviteCodes(client: BlueskyClient, params: CreateInviteCodesInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.createInviteCodes(
+      params.codeCount,
+      params.useCount,
+      params.forAccounts?.filter((a): a is string => typeof a === 'string').map(a => sanitizeString(a))
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleCreateSession(client: BlueskyClient, params: CreateSessionInput): Promise<ToolResult> {
+  try {
+    if (!params.identifier) return { success: false, error: 'identifier is required' };
+    if (!params.password) return { success: false, error: 'password is required' };
+    const result = await client.createSession(
+      sanitizeString(params.identifier),
+      params.password,
+      params.authFactorToken ? sanitizeString(params.authFactorToken) : undefined
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleDeactivateAccount(client: BlueskyClient, params: DeactivateAccountInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    await client.deactivateAccount(params.deleteAfter ? sanitizeString(params.deleteAfter) : undefined);
+    return { success: true, data: { deactivated: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleDeleteAccount(client: BlueskyClient, params: DeleteAccountInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.password) return { success: false, error: 'password is required' };
+    await client.deleteAccount(params.password);
+    return { success: true, data: { deleted: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleDeleteSession(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    await client.deleteSession();
+    return { success: true, data: { deleted: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleDescribeServer(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    const result = await client.describeServer();
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetAccountInviteCodes(client: BlueskyClient, params: GetAccountInviteCodesInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.getAccountInviteCodes(params.includeUsed, params.createAvailable);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetServiceAuth(client: BlueskyClient, params: GetServiceAuthInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.aud) return { success: false, error: 'aud is required' };
+    const result = await client.getServiceAuth(
+      sanitizeString(params.aud),
+      params.lxm ? sanitizeString(params.lxm) : undefined,
+      params.exp
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetSession(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.getSession();
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleListAppPasswords(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.listAppPasswords();
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleRefreshSession(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.refreshSession();
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 export async function handleTestConnectivity(client: BlueskyClient): Promise<ToolResult> {
@@ -589,6 +800,23 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   // Account
   get_preferences: handleGetPreferences,
   update_email: handleUpdateEmail,
+  // Server / Account Management
+  admin_send_email: handleAdminSendEmail,
+  confirm_email: handleConfirmEmail,
+  create_account: handleCreateAccount,
+  create_app_password: handleCreateAppPassword,
+  create_invite_code: handleCreateInviteCode,
+  create_invite_codes: handleCreateInviteCodes,
+  create_session: handleCreateSession,
+  deactivate_account: handleDeactivateAccount,
+  delete_account: handleDeleteAccount,
+  delete_session: handleDeleteSession,
+  describe_server: handleDescribeServer,
+  get_account_invite_codes: handleGetAccountInviteCodes,
+  get_service_auth: handleGetServiceAuth,
+  get_session: handleGetSession,
+  list_app_passwords: handleListAppPasswords,
+  refresh_session: handleRefreshSession,
   // Chat
   add_reaction: handleAddReaction,
   remove_reaction: handleRemoveReaction,

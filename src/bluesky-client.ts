@@ -888,6 +888,396 @@ export class BlueskyClient {
   }
 
   /**
+   * Send an email as an admin (requires auth + admin privileges)
+   */
+  async adminSendEmail(
+    recipientDid: string,
+    content: string,
+    subject?: string,
+    senderDid?: string,
+    comment?: string
+  ): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const body: Record<string, unknown> = { recipientDid, content };
+      if (subject) body.subject = subject;
+      if (senderDid) body.senderDid = senderDid;
+      if (comment) body.comment = comment;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.admin.sendEmail',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to send admin email: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Confirm an email address using a token (requires auth)
+   */
+  async confirmEmail(email: string, token: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.confirmEmail',
+        {},
+        { email, token },
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to confirm email: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create a new account (no auth required)
+   */
+  async createAccount(
+    email: string,
+    handle: string,
+    password: string,
+    inviteCode?: string,
+    verificationCode?: string,
+    verificationPhone?: string,
+    plcOp?: Record<string, unknown>
+  ): Promise<{ did: string; handle: string; accessJwt: string; refreshJwt: string }> {
+    try {
+      const body: Record<string, unknown> = { email, handle, password };
+      if (inviteCode) body.inviteCode = inviteCode;
+      if (verificationCode) body.verificationCode = verificationCode;
+      if (verificationPhone) body.verificationPhone = verificationPhone;
+      if (plcOp) body.plcOp = plcOp;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.createAccount',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create account: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create an app password (requires auth)
+   */
+  async createAppPassword(name: string): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.createAppPassword',
+        {},
+        { name },
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create app password: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create an invite code (requires auth)
+   */
+  async createInviteCode(forAccount?: string, useCount?: number): Promise<{ code: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const body: Record<string, unknown> = {};
+      if (forAccount) body.forAccount = forAccount;
+      if (useCount !== undefined) body.useCount = useCount;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.createInviteCode',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create invite code: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create multiple invite codes (requires auth)
+   */
+  async createInviteCodes(
+    codeCount?: number,
+    useCount?: number,
+    forAccounts?: string[]
+  ): Promise<{ codes: { account: string; code: string }[] }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const body: Record<string, unknown> = {};
+      if (codeCount !== undefined) body.codeCount = codeCount;
+      if (useCount !== undefined) body.useCount = useCount;
+      if (forAccounts) body.forAccounts = forAccounts;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.createInviteCodes',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create invite codes: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Create a session (no auth required)
+   */
+  async createSession(
+    identifier: string,
+    password: string,
+    authFactorToken?: string
+  ): Promise<{ did: string; handle: string; email?: string; accessJwt: string; refreshJwt: string }> {
+    try {
+      const body: Record<string, unknown> = { identifier, password };
+      if (authFactorToken) body.authFactorToken = authFactorToken;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.createSession',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to create session: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Deactivate an account (requires auth)
+   */
+  async deactivateAccount(deleteAfter?: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const body: Record<string, unknown> = {};
+      if (deleteAfter) body.deleteAfter = deleteAfter;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.deactivateAccount',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to deactivate account: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Delete an account (requires auth)
+   */
+  async deleteAccount(password: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.deleteAccount',
+        {},
+        { password },
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to delete account: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Delete the current session (requires auth)
+   */
+  async deleteSession(): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.deleteSession',
+        {},
+        {},
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to delete session: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Describe the server (no auth required)
+   */
+  async describeServer(): Promise<unknown> {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get('com.atproto.server.describeServer', {});
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to describe server: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get account invite codes (requires auth)
+   */
+  async getAccountInviteCodes(includeUsed?: boolean, createAvailable?: boolean): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const params: Record<string, unknown> = {};
+      if (includeUsed !== undefined) params.includeUsed = includeUsed;
+      if (createAvailable !== undefined) params.createAvailable = createAvailable;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'com.atproto.server.getAccountInviteCodes',
+        params
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get account invite codes: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get a service auth token (requires auth)
+   */
+  async getServiceAuth(aud: string, lxm?: string, exp?: number): Promise<{ token: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const params: Record<string, unknown> = { aud };
+      if (lxm) params.lxm = lxm;
+      if (exp !== undefined) params.exp = exp;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'com.atproto.server.getServiceAuth',
+        params
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get service auth: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get the current session (requires auth)
+   */
+  async getSession(): Promise<{ did: string; handle: string; email?: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get('com.atproto.server.getSession', {});
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to get session: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * List app passwords (requires auth)
+   */
+  async listAppPasswords(): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'com.atproto.server.listAppPasswords',
+        {}
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(`Failed to list app passwords: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Refresh the current session (requires auth + refreshJwt)
+   */
+  async refreshSession(): Promise<{ accessJwt: string; refreshJwt: string; handle: string; did: string }> {
+    if (!this.isLoggedIn() || !this.session) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const response = await fetch(`${this.serviceUrl}/xrpc/com.atproto.server.refreshSession`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.session.refreshJwt}`
+        }
+      });
+
+      if (!response.ok) {
+        let message = `Refresh session failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = (await response.json()) as { message?: string; error?: string };
+          if (errorData?.message) {
+            message = errorData.message;
+          } else if (errorData?.error) {
+            message = errorData.error;
+          }
+        } catch {
+          // ignore JSON parse errors
+        }
+        throw new Error(message);
+      }
+
+      const data = (await response.json()) as { accessJwt: string; refreshJwt: string; handle: string; did: string };
+      this.session = {
+        accessJwt: data.accessJwt,
+        refreshJwt: data.refreshJwt,
+        did: data.did,
+        handle: data.handle
+      };
+      return data;
+    } catch (error) {
+      throw new Error(`Failed to refresh session: ${formatError(error)}`);
+    }
+  }
+
+  /**
    * Logout and clear session
    */
   logout(): void {

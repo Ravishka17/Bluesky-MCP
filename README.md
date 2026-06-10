@@ -216,6 +216,28 @@ Configure transport type `streamable-http` with the endpoint URL and any of the 
 | Tool | Description | Auth Required |
 |------|-------------|:---:|
 | `get_preferences` | Get account preferences and content filters | ✅ |
+| `update_email` | Update the email address associated with the account | ✅ |
+
+### Server / Account Management Operations
+
+| Tool | Description | Auth Required |
+|------|-------------|:---:|
+| `admin_send_email` | Send an email as a PDS admin | ✅ |
+| `confirm_email` | Confirm an email address using a verification token | ✅ |
+| `create_account` | Create a new Bluesky/AT Protocol account | ❌ |
+| `create_app_password` | Create a new app password for the account | ✅ |
+| `create_invite_code` | Create a single invite code | ✅ |
+| `create_invite_codes` | Create multiple invite codes at once | ✅ |
+| `create_session` | Create an authentication session (login) | ❌ |
+| `deactivate_account` | Deactivate the authenticated account | ✅ |
+| `delete_account` | Permanently delete the authenticated account | ✅ |
+| `delete_session` | Invalidate the current session | ✅ |
+| `describe_server` | Get PDS server information | ❌ |
+| `get_account_invite_codes` | Get invite codes for the account | ✅ |
+| `get_service_auth` | Get a signed JWT for service auth | ✅ |
+| `get_session` | Get current session details | ✅ |
+| `list_app_passwords` | List all app passwords | ✅ |
+| `refresh_session` | Refresh session tokens | ✅ |
 
 ### Bookmark Operations
 
