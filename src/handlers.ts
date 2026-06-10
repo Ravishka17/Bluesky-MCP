@@ -26,6 +26,13 @@ import type {
   SearchAccountsInput,
   CreateBookmarkInput,
   DeleteBookmarkInput,
+  AddReactionInput,
+  RemoveReactionInput,
+  GetMessagesInput,
+  SendMessageInput,
+  SendMessageBatchInput,
+  GetMessageContextInput,
+  UpdateEmailInput,
   ToolResult
 } from './types';
 
@@ -413,6 +420,122 @@ export async function handleSearchAccounts(client: BlueskyClient, params: Search
   }
 }
 
+// ── Chat ─────────────────────────────────────────────────────────────────────
+
+export async function handleAddReaction(client: BlueskyClient, params: AddReactionInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.convoId) return { success: false, error: 'convoId is required' };
+    if (!params.messageId) return { success: false, error: 'messageId is required' };
+    if (!params.value) return { success: false, error: 'value is required' };
+    const result = await client.addReaction(
+      sanitizeString(params.convoId),
+      sanitizeString(params.messageId),
+      sanitizeString(params.value)
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleRemoveReaction(client: BlueskyClient, params: RemoveReactionInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.convoId) return { success: false, error: 'convoId is required' };
+    if (!params.messageId) return { success: false, error: 'messageId is required' };
+    if (!params.value) return { success: false, error: 'value is required' };
+    const result = await client.removeReaction(
+      sanitizeString(params.convoId),
+      sanitizeString(params.messageId),
+      sanitizeString(params.value)
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetMessages(client: BlueskyClient, params: GetMessagesInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.convoId) return { success: false, error: 'convoId is required' };
+    const result = await client.getMessages(
+      sanitizeString(params.convoId),
+      sanitizeCursor(params.cursor),
+      sanitizeLimit(params.limit, 50)
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleSendMessage(client: BlueskyClient, params: SendMessageInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.convoId) return { success: false, error: 'convoId is required' };
+    if (!params.message?.text) return { success: false, error: 'message.text is required' };
+    const result = await client.sendMessage(
+      sanitizeString(params.convoId),
+      { text: sanitizeString(params.message.text, 1000) }
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleSendMessageBatch(client: BlueskyClient, params: SendMessageBatchInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.items || !Array.isArray(params.items) || params.items.length === 0) {
+      return { success: false, error: 'items array is required and must not be empty' };
+    }
+    if (params.items.length > 25) return { success: false, error: 'Maximum 25 items per batch' };
+    const sanitizedItems = [];
+    for (const item of params.items) {
+      if (!item.convoId) return { success: false, error: 'Each item must have a convoId' };
+      if (!item.message?.text) return { success: false, error: 'Each item must have message.text' };
+      sanitizedItems.push({
+        convoId: sanitizeString(item.convoId),
+        message: { text: sanitizeString(item.message.text, 1000) }
+      });
+    }
+    const result = await client.sendMessageBatch(sanitizedItems);
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetMessageContext(client: BlueskyClient, params: GetMessageContextInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.messageId) return { success: false, error: 'messageId is required' };
+    const result = await client.getMessageContext(sanitizeString(params.messageId));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+// ── Account ───────────────────────────────────────────────────────────────────
+
+export async function handleUpdateEmail(client: BlueskyClient, params: UpdateEmailInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.email) return { success: false, error: 'email is required' };
+    await client.updateEmail(
+      sanitizeString(params.email),
+      params.token ? sanitizeString(params.token) : undefined
+    );
+    return { success: true, data: { updated: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 export async function handleTestConnectivity(client: BlueskyClient): Promise<ToolResult> {
@@ -465,6 +588,14 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   search_accounts: handleSearchAccounts,
   // Account
   get_preferences: handleGetPreferences,
+  update_email: handleUpdateEmail,
+  // Chat
+  add_reaction: handleAddReaction,
+  remove_reaction: handleRemoveReaction,
+  get_messages: handleGetMessages,
+  send_message: handleSendMessage,
+  send_message_batch: handleSendMessageBatch,
+  get_message_context: handleGetMessageContext,
   // Bookmarks
   create_bookmark: handleCreateBookmark,
   delete_bookmark: handleDeleteBookmark,

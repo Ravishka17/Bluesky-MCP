@@ -750,6 +750,144 @@ export class BlueskyClient {
   }
 
   /**
+   * Add a reaction to a chat message (requires auth)
+   */
+  async addReaction(convoId: string, messageId: string, value: string): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      return await this.appviewRequest<unknown>(
+        'chat.bsky.convo.addReaction',
+        undefined,
+        { convoId, messageId, value }
+      );
+    } catch (error) {
+      throw new Error(`Failed to add reaction: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Remove a reaction from a chat message (requires auth)
+   */
+  async removeReaction(convoId: string, messageId: string, value: string): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      return await this.appviewRequest<unknown>(
+        'chat.bsky.convo.removeReaction',
+        undefined,
+        { convoId, messageId, value }
+      );
+    } catch (error) {
+      throw new Error(`Failed to remove reaction: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get messages in a conversation (requires auth)
+   */
+  async getMessages(convoId: string, cursor?: string, limit = 50): Promise<{ messages: unknown[]; cursor?: string }> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const result = await this.appviewRequest<{ messages: unknown[]; cursor?: string }>(
+        'chat.bsky.convo.getMessages',
+        { convoId, cursor, limit }
+      );
+      return result ?? { messages: [] };
+    } catch (error) {
+      throw new Error(`Failed to get messages: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Send a message in a conversation (requires auth)
+   */
+  async sendMessage(convoId: string, message: { text: string }): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      return await this.appviewRequest<unknown>(
+        'chat.bsky.convo.sendMessage',
+        undefined,
+        { convoId, message }
+      );
+    } catch (error) {
+      throw new Error(`Failed to send message: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Send a batch of messages to multiple conversations (requires auth)
+   */
+  async sendMessageBatch(items: Array<{ convoId: string; message: { text: string } }>): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      return await this.appviewRequest<unknown>(
+        'chat.bsky.convo.sendMessageBatch',
+        undefined,
+        { items }
+      );
+    } catch (error) {
+      throw new Error(`Failed to send message batch: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Get message context for moderation (requires auth)
+   */
+  async getMessageContext(messageId: string): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      return await this.appviewRequest<unknown>(
+        'chat.bsky.moderation.getMessageContext',
+        { messageId }
+      );
+    } catch (error) {
+      throw new Error(`Failed to get message context: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Update the email address on the account (requires auth)
+   */
+  async updateEmail(email: string, token?: string): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const body: Record<string, unknown> = { email };
+      if (token) {
+        body.token = token;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
+        'com.atproto.server.updateEmail',
+        {},
+        body,
+        { encoding: 'application/json' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to update email: ${formatError(error)}`);
+    }
+  }
+
+  /**
    * Logout and clear session
    */
   logout(): void {
