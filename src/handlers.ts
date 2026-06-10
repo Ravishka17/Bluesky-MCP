@@ -114,6 +114,32 @@ export async function handleRepostPost(client: BlueskyClient, params: { uri: str
   }
 }
 
+export async function handleUnlikePost(client: BlueskyClient, params: { uri: string }): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.uri) return { success: false, error: 'URI is required' };
+    const v = validateAtUri(params.uri);
+    if (!v.valid || !v.uri) return { success: false, error: v.error };
+    await client.deleteLike(v.uri);
+    return { success: true, data: { unliked: true, uri: params.uri } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleUnrepostPost(client: BlueskyClient, params: { uri: string }): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.uri) return { success: false, error: 'URI is required' };
+    const v = validateAtUri(params.uri);
+    if (!v.valid || !v.uri) return { success: false, error: v.error };
+    await client.deleteRepost(v.uri);
+    return { success: true, data: { unreposted: true, uri: params.uri } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
 // ── Feeds ────────────────────────────────────────────────────────────────────
 
 export async function handleGetTimeline(client: BlueskyClient, params: GetTimelineInput): Promise<ToolResult> {
@@ -420,6 +446,8 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   get_reposted_by: handleGetRepostedBy,
   like_post: handleLikePost,
   repost_post: handleRepostPost,
+  unlike_post: handleUnlikePost,
+  unrepost_post: handleUnrepostPost,
   delete_post: handleDeletePost,
   // Feeds
   get_timeline: handleGetTimeline,
