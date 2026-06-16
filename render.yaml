@@ -2,5 +2,5 @@ services:
   - type: web
     name: Bluesky-MCP
     env: node
-    buildCommand: npm install -g pnpm@9.15.0 && pnpm install && pnpm build
+    buildCommand: pnpm install && pnpm build
     startCommand: node server.js
