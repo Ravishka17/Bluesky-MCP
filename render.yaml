@@ -2,7 +2,7 @@ services:
   - type: web
     name: Bluesky-MCP
     env: node
-    buildCommand: corepack enable && yarn install && yarn build
+    buildCommand: corepack enable && pnpm install && pnpm build
     startCommand: node server.js
     environmentVariables:
       - name: ENABLE_EXPERIMENTAL_COREPACK
