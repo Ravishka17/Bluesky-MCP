@@ -30,6 +30,7 @@ export class BlueskyClient {
   private readonly serviceUrl: string;
   private isAuthenticated = false;
   private readonly APPVIEW_URL = 'https://api.bsky.app';
+  private readonly BSKY_APPVIEW = 'did:web:api.bsky.app#bsky_appview';
 
   constructor(serviceUrl = 'https://bsky.social') {
     this.serviceUrl = serviceUrl;
@@ -523,11 +524,14 @@ export class BlueskyClient {
     }
 
     try {
-      return await this.appviewRequest<{ id: string }>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
         'app.bsky.bookmark.createBookmark',
-        undefined,
-        { uri, cid }
+        {},
+        { uri, cid },
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
+      return response.data;
     } catch (error) {
       throw new Error(`Failed to create bookmark: ${formatError(error)}`);
     }
@@ -542,10 +546,12 @@ export class BlueskyClient {
     }
 
     try {
-      await this.appviewRequest<void>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (this.agent.api as any).xrpc.call(
         'app.bsky.bookmark.deleteBookmark',
-        undefined,
-        { uri }
+        {},
+        { uri },
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
     } catch (error) {
       throw new Error(`Failed to delete bookmark: ${formatError(error)}`);
@@ -561,11 +567,13 @@ export class BlueskyClient {
     }
 
     try {
-      const result = await this.appviewRequest<{ bookmarks: unknown[]; cursor?: string }>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
         'app.bsky.bookmark.getBookmarks',
-        { cursor, limit }
+        { cursor, limit },
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
-      return result ?? { bookmarks: [] };
+      return { bookmarks: response.data.bookmarks ?? [], cursor: response.data.cursor };
     } catch (error) {
       throw new Error(`Failed to get bookmarks: ${formatError(error)}`);
     }
@@ -580,11 +588,14 @@ export class BlueskyClient {
     }
 
     try {
-      return await this.appviewRequest<unknown>(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.call(
         'app.bsky.ageassurance.begin',
-        undefined,
-        {}
+        {},
+        {},
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
+      return response.data;
     } catch (error) {
       throw new Error(`Failed to begin age assurance: ${formatError(error)}`);
     }
@@ -599,7 +610,13 @@ export class BlueskyClient {
     }
 
     try {
-      return await this.appviewRequest<unknown>('app.bsky.ageassurance.getConfig');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.ageassurance.getConfig',
+        {},
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
+      );
+      return response.data;
     } catch (error) {
       throw new Error(`Failed to get age assurance config: ${formatError(error)}`);
     }
@@ -614,7 +631,13 @@ export class BlueskyClient {
     }
 
     try {
-      return await this.appviewRequest<unknown>('app.bsky.ageassurance.getState');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (this.agent.api as any).xrpc.get(
+        'app.bsky.ageassurance.getState',
+        {},
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
+      );
+      return response.data;
     } catch (error) {
       throw new Error(`Failed to get age assurance state: ${formatError(error)}`);
     }
@@ -670,7 +693,7 @@ export class BlueskyClient {
         'app.bsky.draft.createDraft',
         {},
         { text, langs },
-        { encoding: 'application/json' }
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return response.data;
     } catch (error) {
@@ -692,7 +715,7 @@ export class BlueskyClient {
         'app.bsky.draft.deleteDraft',
         {},
         { id },
-        { encoding: 'application/json' }
+        { encoding: 'application/json', headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
     } catch (error) {
       throw new Error(`Failed to delete draft: ${formatError(error)}`);
@@ -711,7 +734,8 @@ export class BlueskyClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (this.agent.api as any).xrpc.get(
         'app.bsky.draft.getDrafts',
-        { cursor, limit }
+        { cursor, limit },
+        { headers: { 'atproto-proxy': this.BSKY_APPVIEW } }
       );
       return {
         drafts: response.data.drafts ?? [],
