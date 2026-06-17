@@ -2,7 +2,6 @@
   "name": "bluesky-mcp",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -29,10 +28,8 @@
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.7.3"
   },
-  "pnpm": {
-    "overrides": {
-      "qs": ">=6.15.2",
-      "postcss": ">=8.5.10"
-    }
+  "overrides": {
+    "qs": ">=6.15.2",
+    "postcss": ">=8.5.10"
   }
 }
