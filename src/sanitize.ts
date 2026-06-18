@@ -4,6 +4,8 @@
  */
 
 import { z } from 'zod';
+import { formatError } from './utils';
+import type { ProcessedImage } from './types';
 
 // Maximum lengths
 export const MAX_TEXT_LENGTH = 300;
@@ -11,6 +13,10 @@ export const MAX_LIMIT = 100;
 export const DEFAULT_LIMIT = 20;
 export const MAX_URI_LENGTH = 2048;
 export const MAX_DID_LENGTH = 100;
+export const MAX_IMAGES = 4;
+export const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 // Sanitization patterns - remove potentially dangerous characters
 const DANGEROUS_CHARS = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
@@ -192,6 +198,124 @@ export function escapeHtml(input: string): string {
   };
 
   return input.replace(/[&<>"']/g, char => htmlEscapeMap[char]);
+}
+
+/**
+ * Fetch image data from a base64 data URI or remote HTTPS URL.
+ */
+export async function fetchImage(source: string): Promise<{ data: Uint8Array; mimeType: string }> {
+  const dataUriMatch = source.match(/^data:(.+?);base64,(.+)$/);
+  if (dataUriMatch) {
+    const mimeType = dataUriMatch[1];
+    const base64 = dataUriMatch[2];
+    const binary = Buffer.from(base64, 'base64');
+    return { data: new Uint8Array(binary), mimeType };
+  }
+
+  if (source.startsWith('http://') || source.startsWith('https://')) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(source, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > MAX_IMAGE_SIZE * 2) {
+        throw new Error('Image download exceeds maximum allowed size');
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength > MAX_IMAGE_SIZE * 2) {
+        throw new Error('Image download exceeds maximum allowed size');
+      }
+      let mimeType = response.headers.get('content-type') || '';
+      if (!mimeType || mimeType === 'application/octet-stream') {
+        mimeType = inferMimeTypeFromUrl(source);
+      }
+      return { data: new Uint8Array(arrayBuffer), mimeType };
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
+  }
+
+  throw new Error('Invalid image source: must be a base64 data URI or HTTPS URL');
+}
+
+function inferMimeTypeFromUrl(url: string): string {
+  const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
+  switch (ext) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+/**
+ * Validate an array of image inputs, fetching and enforcing size/type limits.
+ */
+export async function validateImages(images: unknown): Promise<{ valid: boolean; images?: ProcessedImage[]; error?: string }> {
+  if (!Array.isArray(images)) {
+    return { valid: false, error: 'images must be an array' };
+  }
+  if (images.length === 0) {
+    return { valid: true, images: [] };
+  }
+  if (images.length > MAX_IMAGES) {
+    return { valid: false, error: `Maximum ${MAX_IMAGES} images allowed` };
+  }
+
+  const processed: ProcessedImage[] = [];
+  for (const item of images) {
+    if (typeof item !== 'object' || item === null) {
+      return { valid: false, error: 'Each image must be an object' };
+    }
+    const img = item as Record<string, unknown>;
+    if (typeof img.source !== 'string' || !img.source) {
+      return { valid: false, error: 'Each image must have a source string' };
+    }
+    if (typeof img.alt !== 'string') {
+      return { valid: false, error: 'Each image must have an alt string' };
+    }
+    const alt = sanitizeString(img.alt, 5000);
+    let aspectRatio: { width: number; height: number } | undefined;
+    if (img.aspectRatio !== undefined) {
+      if (typeof img.aspectRatio !== 'object' || img.aspectRatio === null) {
+        return { valid: false, error: 'aspectRatio must be an object with width and height' };
+      }
+      const ar = img.aspectRatio as Record<string, unknown>;
+      const width = Number(ar.width);
+      const height = Number(ar.height);
+      if (!Number.isInteger(width) || width <= 0 || !Number.isInteger(height) || height <= 0) {
+        return { valid: false, error: 'aspectRatio width and height must be positive integers' };
+      }
+      aspectRatio = { width, height };
+    }
+
+    try {
+      const fetched = await fetchImage(img.source);
+      if (!ALLOWED_IMAGE_TYPES.includes(fetched.mimeType)) {
+        return { valid: false, error: `Unsupported image type: ${fetched.mimeType}` };
+      }
+      if (fetched.data.length > MAX_IMAGE_SIZE) {
+        return { valid: false, error: `Image exceeds maximum size of ${MAX_IMAGE_SIZE} bytes` };
+      }
+      processed.push({ data: fetched.data, mimeType: fetched.mimeType, alt, aspectRatio });
+    } catch (error) {
+      return { valid: false, error: `Failed to process image: ${formatError(error)}` };
+    }
+  }
+
+  return { valid: true, images: processed };
 }
 
 // Zod Schemas for validation

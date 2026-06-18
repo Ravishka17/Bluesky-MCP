@@ -143,7 +143,7 @@ function getUsageGuidePrompt(task?: string): string {
   if (t.includes('profile')) return `Use get_profile for a single user, get_profiles for batch lookup (up to 25 actors).`;
   if (t.includes('feed')) return `Use get_timeline (auth), get_feed (at:// URI), or get_author_feed.`;
   if (t.includes('thread')) return `Use get_thread with a post URI. Control depth and parentHeight.`;
-  if (t.includes('draft')) return `Use create_draft to save a draft, get_drafts to list drafts, delete_draft to remove a draft by ID.`;
+  if (t.includes('draft')) return `Use create_draft to save a draft, update_draft to modify an existing draft, get_drafts to list drafts, delete_draft to remove a draft by ID. You can attach up to 4 images (base64 data URI or HTTPS URL) with alt text to drafts and posts.`;
   if (t.includes('chat') || t.includes('message')) return `Use send_message to send a DM, send_message_batch for multiple DMs, get_messages to list conversation messages, add_reaction to react to a message, remove_reaction to remove a reaction, get_message_context for moderation context.`;
   if (t.includes('account')) return `Use get_preferences for account settings, update_email to change your email address, create_app_password to generate app passwords, list_app_passwords to view them, get_session to check session info, refresh_session to renew tokens, delete_session to invalidate the session, deactivate_account to deactivate, delete_account to permanently delete, confirm_email to verify an email change, get_account_invite_codes to list invite codes, create_invite_code or create_invite_codes to generate codes.`;
   if (t.includes('server')) return `Use describe_server to get PDS info, create_account to register a new account, create_session to log in and get tokens.`;
@@ -156,5 +156,5 @@ function getSearchPostsPrompt(topic?: string): string {
 }
 
 function getComposePostPrompt(content?: string): string {
-  return `Compose a Bluesky post (max 300 chars):\n${content || '[content]'}\nUse create_post with text and optionally langs: ["en"].`;
+  return `Compose a Bluesky post (max 300 chars):\n${content || '[content]'}\nUse create_post with text and optionally langs: ["en"]. You can attach up to 4 images by providing an images array with source (base64 data URI or HTTPS URL) and alt text.`;
 }

@@ -33,6 +33,25 @@ export interface PostRecord {
   facets?: unknown[];
 }
 
+export interface ImageInput {
+  source: string;
+  alt: string;
+  aspectRatio?: {
+    width: number;
+    height: number;
+  };
+}
+
+export interface ProcessedImage {
+  data: Uint8Array;
+  mimeType: string;
+  alt: string;
+  aspectRatio?: {
+    width: number;
+    height: number;
+  };
+}
+
 export interface TimelineOptions {
   cursor?: string;
   limit?: number;
@@ -180,6 +199,7 @@ export interface CreatePostInput {
     parentUri: string;
     parentCid: string;
   };
+  images?: ImageInput[];
 }
 
 export interface GetTimelineInput {
@@ -228,6 +248,14 @@ export interface DeletePostInput {
 export interface DraftInput {
   text: string;
   langs?: string[];
+  images?: ImageInput[];
+}
+
+export interface UpdateDraftInput {
+  id: string;
+  text: string;
+  langs?: string[];
+  images?: ImageInput[];
 }
 
 export interface DeleteDraftInput {

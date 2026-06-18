@@ -17,7 +17,7 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '8000', 10);
 
 // Middleware
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(cors(corsOptions()));
 app.use(securityHeadersMiddleware);
 app.use(rateLimitMiddleware);
