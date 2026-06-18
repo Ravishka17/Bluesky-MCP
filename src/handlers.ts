@@ -7,6 +7,7 @@ import {
   validatePostText,
   validateRkey,
   extractRkeyFromUri,
+  validateImages,
   DEFAULT_LIMIT
 } from './sanitize';
 import { formatError } from './utils';
@@ -21,6 +22,7 @@ import type {
   GetFeedInput,
   DeletePostInput,
   DraftInput,
+  UpdateDraftInput,
   DeleteDraftInput,
   GetDraftsInput,
   SearchAccountsInput,
@@ -44,6 +46,7 @@ import type {
   DeleteAccountInput,
   GetAccountInviteCodesInput,
   GetServiceAuthInput,
+  ProcessedImage,
   ToolResult
 } from './types';
 
@@ -62,9 +65,16 @@ export async function handleCreatePost(client: BlueskyClient, params: CreatePost
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required.' };
     const validation = validatePostText(params.text);
     if (!validation.valid || !validation.text) return { success: false, error: validation.error };
+    let images: ProcessedImage[] | undefined;
+    if (params.images) {
+      const imgValidation = await validateImages(params.images);
+      if (!imgValidation.valid) return { success: false, error: imgValidation.error };
+      images = imgValidation.images;
+    }
     const result = await client.createPost(validation.text, {
       langs: params.langs?.filter((l): l is string => typeof l === 'string'),
-      reply: params.reply
+      reply: params.reply,
+      images
     });
     return { success: true, data: result };
   } catch (error) {
@@ -384,11 +394,42 @@ export async function handleCreateDraft(client: BlueskyClient, params: DraftInpu
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
     const validation = validatePostText(params.text);
     if (!validation.valid || !validation.text) return { success: false, error: validation.error };
+    let images: ProcessedImage[] | undefined;
+    if (params.images) {
+      const imgValidation = await validateImages(params.images);
+      if (!imgValidation.valid) return { success: false, error: imgValidation.error };
+      images = imgValidation.images;
+    }
     const result = await client.createDraft(
       validation.text,
-      params.langs?.filter((l): l is string => typeof l === 'string')
+      params.langs?.filter((l): l is string => typeof l === 'string'),
+      images
     );
     return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleUpdateDraft(client: BlueskyClient, params: UpdateDraftInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.id) return { success: false, error: 'Draft ID is required' };
+    const validation = validatePostText(params.text);
+    if (!validation.valid || !validation.text) return { success: false, error: validation.error };
+    let images: ProcessedImage[] | undefined;
+    if (params.images) {
+      const imgValidation = await validateImages(params.images);
+      if (!imgValidation.valid) return { success: false, error: imgValidation.error };
+      images = imgValidation.images;
+    }
+    await client.updateDraft(
+      sanitizeString(params.id),
+      validation.text,
+      params.langs?.filter((l): l is string => typeof l === 'string'),
+      images
+    );
+    return { success: true, data: { updated: true, id: params.id } };
   } catch (error) {
     return { success: false, error: formatError(error) };
   }
@@ -830,6 +871,7 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   get_bookmarks: handleGetBookmarks,
   // Drafts
   create_draft: handleCreateDraft,
+  update_draft: handleUpdateDraft,
   delete_draft: handleDeleteDraft,
   get_drafts: handleGetDrafts,
   // Age Assurance

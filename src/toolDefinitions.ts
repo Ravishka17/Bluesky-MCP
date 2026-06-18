@@ -18,7 +18,7 @@ export const toolDefinitions: ToolDefinition[] = [
 
   {
     name: 'create_post',
-    description: 'Create a new post on Bluesky (max 300 chars). Optionally set language codes or reply to an existing post. Requires authentication.',
+    description: 'Create a new post on Bluesky (max 300 chars). Optionally set language codes, reply to an existing post, or attach up to 4 images. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -34,6 +34,27 @@ export const toolDefinitions: ToolDefinition[] = [
             parentCid: { type: 'string', description: 'Parent post CID' }
           },
           required: ['rootUri', 'rootCid', 'parentUri', 'parentCid']
+        },
+        images: {
+          type: 'array',
+          description: 'Up to 4 images to attach to the post',
+          maxItems: 4,
+          items: {
+            type: 'object',
+            properties: {
+              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              alt: { type: 'string', description: 'Alt text for the image' },
+              aspectRatio: {
+                type: 'object',
+                properties: {
+                  width: { type: 'number', description: 'Image width in pixels' },
+                  height: { type: 'number', description: 'Image height in pixels' }
+                },
+                required: ['width', 'height']
+              }
+            },
+            required: ['source', 'alt']
+          }
         }
       },
       required: ['text']
@@ -628,14 +649,69 @@ export const toolDefinitions: ToolDefinition[] = [
 
   {
     name: 'create_draft',
-    description: 'Create a draft post. Requires authentication.',
+    description: 'Create a draft post. Optionally attach up to 4 images. Requires authentication.',
     inputSchema: {
       type: 'object',
       properties: {
         text: { type: 'string', description: 'Draft text content (max 300 characters)', maxLength: 300 },
-        langs: { type: 'array', items: { type: 'string' }, description: 'Language codes, e.g. ["en"]', maxItems: 5 }
+        langs: { type: 'array', items: { type: 'string' }, description: 'Language codes, e.g. ["en"]', maxItems: 5 },
+        images: {
+          type: 'array',
+          description: 'Up to 4 images to attach to the draft',
+          maxItems: 4,
+          items: {
+            type: 'object',
+            properties: {
+              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              alt: { type: 'string', description: 'Alt text for the image' },
+              aspectRatio: {
+                type: 'object',
+                properties: {
+                  width: { type: 'number', description: 'Image width in pixels' },
+                  height: { type: 'number', description: 'Image height in pixels' }
+                },
+                required: ['width', 'height']
+              }
+            },
+            required: ['source', 'alt']
+          }
+        }
       },
       required: ['text']
+    }
+  },
+  {
+    name: 'update_draft',
+    description: 'Update an existing draft post, optionally replacing its text, languages, and images. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Draft ID to update' },
+        text: { type: 'string', description: 'Updated draft text content (max 300 characters)', maxLength: 300 },
+        langs: { type: 'array', items: { type: 'string' }, description: 'Language codes, e.g. ["en"]', maxItems: 5 },
+        images: {
+          type: 'array',
+          description: 'Up to 4 images to attach to the draft',
+          maxItems: 4,
+          items: {
+            type: 'object',
+            properties: {
+              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              alt: { type: 'string', description: 'Alt text for the image' },
+              aspectRatio: {
+                type: 'object',
+                properties: {
+                  width: { type: 'number', description: 'Image width in pixels' },
+                  height: { type: 'number', description: 'Image height in pixels' }
+                },
+                required: ['width', 'height']
+              }
+            },
+            required: ['source', 'alt']
+          }
+        }
+      },
+      required: ['id', 'text']
     }
   },
   {

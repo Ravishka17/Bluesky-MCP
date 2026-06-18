@@ -20,7 +20,8 @@ import type {
   CreatePostResult,
   SearchPostsOptions,
   SearchPostsResult,
-  SearchAccountsInput
+  SearchAccountsInput,
+  ProcessedImage
 } from './types';
 import { formatError } from './utils';
 
@@ -141,6 +142,17 @@ export class BlueskyClient {
   }
 
   /**
+   * Upload an image blob to the user's PDS.
+   */
+  async uploadImage(data: Uint8Array, mimeType: string): Promise<unknown> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+    const res = await this.agent.uploadBlob(data, { encoding: mimeType });
+    return res.data.blob;
+  }
+
+  /**
    * Create a new post
    */
   async createPost(
@@ -153,6 +165,7 @@ export class BlueskyClient {
         parentUri: string;
         parentCid: string;
       };
+      images?: ProcessedImage[];
     } = {}
   ): Promise<CreatePostResult> {
     if (!this.isLoggedIn()) {
@@ -174,6 +187,26 @@ export class BlueskyClient {
         postRecord.reply = {
           root: { uri: options.reply.rootUri, cid: options.reply.rootCid },
           parent: { uri: options.reply.parentUri, cid: options.reply.parentCid }
+        };
+      }
+
+      if (options.images && options.images.length > 0) {
+        const images = await Promise.all(
+          options.images.map(async (img) => {
+            const blob = await this.uploadImage(img.data, img.mimeType);
+            const imageObj: Record<string, unknown> = {
+              image: blob,
+              alt: img.alt
+            };
+            if (img.aspectRatio) {
+              imageObj.aspectRatio = img.aspectRatio;
+            }
+            return imageObj;
+          })
+        );
+        (postRecord as Record<string, unknown>).embed = {
+          $type: 'app.bsky.embed.images',
+          images
         };
       }
 
@@ -670,14 +703,36 @@ export class BlueskyClient {
    * not a flat { text, langs } body — so the single text/langs we accept here
    * is wrapped into a one-item draft.posts[] array before sending.
    */
-  async createDraft(text: string, langs?: string[]): Promise<{ id: string }> {
+  async createDraft(text: string, langs?: string[], images?: ProcessedImage[]): Promise<{ id: string }> {
     if (!this.isLoggedIn()) {
       throw new Error('Not authenticated');
     }
 
     try {
+      const draftPost: Record<string, unknown> = { text };
+
+      if (images && images.length > 0) {
+        const uploadedImages = await Promise.all(
+          images.map(async (img) => {
+            const blob = await this.uploadImage(img.data, img.mimeType);
+            const imageObj: Record<string, unknown> = {
+              image: blob,
+              alt: img.alt
+            };
+            if (img.aspectRatio) {
+              imageObj.aspectRatio = img.aspectRatio;
+            }
+            return imageObj;
+          })
+        );
+        draftPost.embed = {
+          $type: 'app.bsky.embed.images',
+          images: uploadedImages
+        };
+      }
+
       const draft: Record<string, unknown> = {
-        posts: [{ text }]
+        posts: [draftPost]
       };
 
       if (langs && langs.length > 0) {
@@ -697,6 +752,57 @@ export class BlueskyClient {
       return result;
     } catch (error) {
       throw new Error(`Failed to create draft: ${formatError(error)}`);
+    }
+  }
+
+  /**
+   * Update an existing draft post (requires auth).
+   * Routed through appviewRequest() — see createDraft() for why app.bsky.draft.*
+   * must go to the AppView (api.bsky.app) instead of the PDS.
+   */
+  async updateDraft(id: string, text: string, langs?: string[], images?: ProcessedImage[]): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      const draftPost: Record<string, unknown> = { text };
+
+      if (images && images.length > 0) {
+        const uploadedImages = await Promise.all(
+          images.map(async (img) => {
+            const blob = await this.uploadImage(img.data, img.mimeType);
+            const imageObj: Record<string, unknown> = {
+              image: blob,
+              alt: img.alt
+            };
+            if (img.aspectRatio) {
+              imageObj.aspectRatio = img.aspectRatio;
+            }
+            return imageObj;
+          })
+        );
+        draftPost.embed = {
+          $type: 'app.bsky.embed.images',
+          images: uploadedImages
+        };
+      }
+
+      const draftWithId: Record<string, unknown> = {
+        id,
+        draft: {
+          posts: [draftPost],
+          ...(langs && langs.length > 0 ? { langs } : {})
+        }
+      };
+
+      await this.appviewRequest<void>(
+        'app.bsky.draft.updateDraft',
+        undefined,
+        { draft: draftWithId }
+      );
+    } catch (error) {
+      throw new Error(`Failed to update draft: ${formatError(error)}`);
     }
   }
 
