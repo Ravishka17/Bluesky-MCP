@@ -153,6 +153,14 @@ export class BlueskyClient {
   }
 
   /**
+   * Upload a raw blob to the user's PDS.
+   * Returns the blob reference that can be used in record embeds.
+   */
+  async uploadBlob(data: Uint8Array, mimeType: string): Promise<unknown> {
+    return this.uploadImage(data, mimeType);
+  }
+
+  /**
    * Create a new post
    */
   async createPost(
@@ -1034,7 +1042,7 @@ export class BlueskyClient {
       if (comment) body.comment = comment;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (this.agent.api as any).xrpc.call(
-        'com.atproto.admin.sendEmail',
+        'com.atproto.server.sendEmail',
         {},
         body,
         { encoding: 'application/json' }
