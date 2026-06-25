@@ -42,7 +42,7 @@ export const toolDefinitions: ToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              source: { type: 'string', description: 'Base64 data URI, HTTPS URL, or local file path of the image' },
               alt: { type: 'string', description: 'Alt text for the image' },
               aspectRatio: {
                 type: 'object',
@@ -662,7 +662,7 @@ export const toolDefinitions: ToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              source: { type: 'string', description: 'Base64 data URI, HTTPS URL, or local file path of the image' },
               alt: { type: 'string', description: 'Alt text for the image' },
               aspectRatio: {
                 type: 'object',
@@ -696,7 +696,7 @@ export const toolDefinitions: ToolDefinition[] = [
           items: {
             type: 'object',
             properties: {
-              source: { type: 'string', description: 'Base64 data URI or HTTPS URL of the image' },
+              source: { type: 'string', description: 'Base64 data URI, HTTPS URL, or local file path of the image' },
               alt: { type: 'string', description: 'Alt text for the image' },
               aspectRatio: {
                 type: 'object',
@@ -761,6 +761,27 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {}
+    }
+  },
+
+  // ── Blob Upload ────────────────────────────────────────────────────────────
+
+  {
+    name: 'upload_blob',
+    description: 'Upload a blob (image, video, or other file) to the authenticated user\'s PDS repository via com.atproto.repo.uploadBlob. Returns a blob reference that can be used in post embeds, profile media, or other record types. Supports base64 data URIs, HTTPS URLs, and local file paths. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        source: {
+          type: 'string',
+          description: 'Image or file source: base64 data URI (data:image/png;base64,...), HTTPS URL (https://...), or local absolute file path (/path/to/image.png)'
+        },
+        mimeType: {
+          type: 'string',
+          description: 'Optional MIME type override (e.g. image/png, image/jpeg, video/mp4). If omitted, inferred from file extension or data URI'
+        }
+      },
+      required: ['source']
     }
   },
 
