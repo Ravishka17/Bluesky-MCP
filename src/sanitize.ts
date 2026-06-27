@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { readFile } from 'fs/promises';
 import { formatError } from './utils';
 import type { ProcessedImage } from './types';
 
@@ -201,9 +202,30 @@ export function escapeHtml(input: string): string {
 }
 
 /**
- * Fetch image data from a base64 data URI or remote HTTPS URL.
+ * Infer MIME type from a file path or URL extension.
+ */
+function inferMimeType(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase().split('?')[0];
+  switch (ext) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+/**
+ * Fetch image data from a base64 data URI, remote HTTPS URL, or local file path.
  */
 export async function fetchImage(source: string): Promise<{ data: Uint8Array; mimeType: string }> {
+  // 1. Base64 data URI
   const dataUriMatch = source.match(/^data:(.+?);base64,(.+)$/);
   if (dataUriMatch) {
     const mimeType = dataUriMatch[1];
@@ -212,6 +234,7 @@ export async function fetchImage(source: string): Promise<{ data: Uint8Array; mi
     return { data: new Uint8Array(binary), mimeType };
   }
 
+  // 2. Remote HTTP(S) URL
   if (source.startsWith('http://') || source.startsWith('https://')) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
@@ -231,7 +254,7 @@ export async function fetchImage(source: string): Promise<{ data: Uint8Array; mi
       }
       let mimeType = response.headers.get('content-type') || '';
       if (!mimeType || mimeType === 'application/octet-stream') {
-        mimeType = inferMimeTypeFromUrl(source);
+        mimeType = inferMimeType(source);
       }
       return { data: new Uint8Array(arrayBuffer), mimeType };
     } catch (error) {
@@ -240,24 +263,22 @@ export async function fetchImage(source: string): Promise<{ data: Uint8Array; mi
     }
   }
 
-  throw new Error('Invalid image source: must be a base64 data URI or HTTPS URL');
-}
-
-function inferMimeTypeFromUrl(url: string): string {
-  const ext = url.split('.').pop()?.toLowerCase().split('?')[0];
-  switch (ext) {
-    case 'png':
-      return 'image/png';
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg';
-    case 'gif':
-      return 'image/gif';
-    case 'webp':
-      return 'image/webp';
-    default:
-      return 'application/octet-stream';
+  // 3. Local file path (absolute or relative)
+  if (source.startsWith('/') || source.startsWith('file://')) {
+    const filePath = source.startsWith('file://') ? source.slice(7) : source;
+    try {
+      const buffer = await readFile(filePath);
+      if (buffer.length > MAX_IMAGE_SIZE * 2) {
+        throw new Error('Local file exceeds maximum allowed size');
+      }
+      const mimeType = inferMimeType(filePath);
+      return { data: new Uint8Array(buffer), mimeType };
+    } catch (error) {
+      throw new Error(`Failed to read local file: ${formatError(error)}`);
+    }
   }
+
+  throw new Error('Invalid image source: must be a base64 data URI, HTTPS URL, or local file path');
 }
 
 /**

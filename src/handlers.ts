@@ -8,6 +8,7 @@ import {
   validateRkey,
   extractRkeyFromUri,
   validateImages,
+  fetchImage,
   DEFAULT_LIMIT
 } from './sanitize';
 import { formatError } from './utils';
@@ -47,6 +48,7 @@ import type {
   GetAccountInviteCodesInput,
   GetServiceAuthInput,
   ProcessedImage,
+  UploadBlobInput,
   ToolResult
 } from './types';
 
@@ -451,6 +453,28 @@ export async function handleGetDrafts(client: BlueskyClient, params: GetDraftsIn
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
     const result = await client.getDrafts(sanitizeCursor(params.cursor), sanitizeLimit(params.limit, 50));
     return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+// ── Blob Upload ──────────────────────────────────────────────────────────────
+
+export async function handleUploadBlob(client: BlueskyClient, params: UploadBlobInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!params.source) return { success: false, error: 'source is required' };
+
+    const source = sanitizeString(params.source, 50000);
+    if (!source) return { success: false, error: 'source cannot be empty' };
+
+    const { data, mimeType } = await fetchImage(source);
+
+    // Allow overriding the inferred MIME type
+    const finalMimeType = params.mimeType ? sanitizeString(params.mimeType, 100) : mimeType;
+
+    const blob = await client.uploadBlob(data, finalMimeType);
+    return { success: true, data: { blob, mimeType: finalMimeType, size: data.length } };
   } catch (error) {
     return { success: false, error: formatError(error) };
   }
@@ -878,6 +902,8 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   begin_age_assurance: handleBeginAgeAssurance,
   get_age_assurance_config: handleGetAgeAssuranceConfig,
   get_age_assurance_state: handleGetAgeAssuranceState,
+  // Blob Upload
+  upload_blob: handleUploadBlob,
   // Utility
   test_connectivity: handleTestConnectivity,
 };

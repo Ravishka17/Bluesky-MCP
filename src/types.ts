@@ -388,6 +388,11 @@ export interface GetServiceAuthInput {
   exp?: number;
 }
 
+export interface UploadBlobInput {
+  source: string;
+  mimeType?: string;
+}
+
 // Rate limiting types
 export interface RateLimitConfig {
   windowMs: number;
