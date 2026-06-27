@@ -153,9 +153,9 @@ function getUsageGuidePrompt(task?: string): string {
 }
 
 function getSearchPostsPrompt(topic?: string): string {
-  return `Search Bluesky for: ${topic || '[topic']}\nUse search_posts with query="${topic || 'your topic'}", sort="latest" or "top".`;
+  return `Search Bluesky for: ${topic || '[topic]'}\nUse search_posts with query="${topic || 'your topic'}", sort="latest" or "top".`;
 }
 
 function getComposePostPrompt(content?: string): string {
-  return `Compose a Bluesky post (max 300 chars):\n${content || '[content']}\nUse create_post with text and optionally langs: ["en"]. You can attach up to 4 images by providing an images array with source (base64 data URI, HTTPS URL, or local file path) and alt text. Alternatively, use upload_blob first to upload images individually and get blob references.`;
+  return `Compose a Bluesky post (max 300 chars):\n${content || '[content]'}\nUse create_post with text and optionally langs: ["en"]. You can attach up to 4 images by providing an images array with source (base64 data URI, HTTPS URL, or local file path) and alt text. Alternatively, use upload_blob first to upload images individually and get blob references.`;
 }
