@@ -437,10 +437,16 @@ export const toolDefinitions: ToolDefinition[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        password: { type: 'string', description: 'Account password for confirmation' }
+        password: { type: 'string', description: 'Account password for confirmation' },
+        token: { type: 'string', description: 'Deletion token emailed to you after calling request_account_delete' }
       },
-      required: ['password']
+      required: ['password', 'token']
     }
+  },
+  {
+    name: 'request_account_delete',
+    description: 'Step 1 of account deletion: emails a deletion token to the account email. Does not delete anything by itself. Requires authentication.',
+    inputSchema: { type: 'object', properties: {} }
   },
   {
     name: 'delete_session',
@@ -509,6 +515,28 @@ export const toolDefinitions: ToolDefinition[] = [
 
   // ── Chat ───────────────────────────────────────────────────────────────────
 
+  {
+    name: 'list_convos',
+    description: 'List your Bluesky DM conversations (use this to discover convoId values). Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cursor: { type: 'string', description: 'Pagination cursor' },
+        limit: { type: 'number', description: 'Number of conversations (1-100, default 50)', minimum: 1, maximum: 100, default: 50 }
+      }
+    }
+  },
+  {
+    name: 'get_convo_for_members',
+    description: 'Get (or start) the DM conversation with the given member DIDs and return its convoId. Requires authentication.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        members: { type: 'array', items: { type: 'string' }, description: 'DIDs of the other participant(s), 1-10', minItems: 1, maxItems: 10 }
+      },
+      required: ['members']
+    }
+  },
   {
     name: 'add_reaction',
     description: 'Add a reaction (emoji) to a specific message in a Bluesky DM conversation. Requires authentication.',
@@ -760,7 +788,11 @@ export const toolDefinitions: ToolDefinition[] = [
     description: 'Get the current Age Assurance state/status for the authenticated account (verified, pending, etc.). Requires authentication.',
     inputSchema: {
       type: 'object',
-      properties: {}
+      properties: {
+        countryCode: { type: 'string', description: 'ISO 3166-1 alpha-2 country code, e.g. "LK"', minLength: 2, maxLength: 2 },
+        regionCode: { type: 'string', description: 'Optional ISO 3166-2 region code' }
+      },
+      required: ['countryCode']
     }
   },
 
