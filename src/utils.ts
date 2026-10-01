@@ -103,19 +103,29 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
  */
 export function formatError(error: unknown): string {
   if (error instanceof Error) {
-    // Don't expose internal error details
     if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
       return 'Unable to connect to Bluesky service';
     }
-    if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-      return 'Authentication failed. Please check your credentials.';
-    }
-    if (error.message.includes('429') || error.message.includes('rate limit')) {
+    if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
       return 'Rate limit exceeded. Please try again later.';
     }
+    return error.message || error.name;
+  }
 
-    // Return user-friendly message without exposing internals
-    return error.message;
+  if (typeof error === 'string') return error;
+
+  if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>;
+    const data = (e.data && typeof e.data === 'object' ? e.data : {}) as Record<string, unknown>;
+    const candidates = [e.message, data.message, e.error, data.error];
+    for (const c of candidates) {
+      if (typeof c === 'string' && c) return c;
+    }
+    try {
+      return JSON.stringify(error).slice(0, 500);
+    } catch {
+      // fall through
+    }
   }
 
   return 'An unexpected error occurred';
