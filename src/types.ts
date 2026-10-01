@@ -375,6 +375,21 @@ export interface DeactivateAccountInput {
 
 export interface DeleteAccountInput {
   password: string;
+  token: string;
+}
+
+export interface GetAgeAssuranceStateInput {
+  countryCode: string;
+  regionCode?: string;
+}
+
+export interface ListConvosInput {
+  cursor?: string;
+  limit?: number;
+}
+
+export interface GetConvoForMembersInput {
+  members: string[];
 }
 
 export interface GetAccountInviteCodesInput {
