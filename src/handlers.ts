@@ -45,6 +45,9 @@ import type {
   CreateSessionInput,
   DeactivateAccountInput,
   DeleteAccountInput,
+  GetAgeAssuranceStateInput,
+  ListConvosInput,
+  GetConvoForMembersInput,
   GetAccountInviteCodesInput,
   GetServiceAuthInput,
   ProcessedImage,
@@ -353,10 +356,14 @@ export async function handleGetAgeAssuranceConfig(client: BlueskyClient): Promis
   }
 }
 
-export async function handleGetAgeAssuranceState(client: BlueskyClient): Promise<ToolResult> {
+export async function handleGetAgeAssuranceState(client: BlueskyClient, params: GetAgeAssuranceStateInput): Promise<ToolResult> {
   try {
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
-    const result = await client.getAgeAssuranceState();
+    if (!params?.countryCode) return { success: false, error: 'countryCode is required (ISO 3166-1 alpha-2, e.g. "LK")' };
+    const result = await client.getAgeAssuranceState(
+      sanitizeString(params.countryCode, 2).toUpperCase(),
+      params.regionCode ? sanitizeString(params.regionCode, 10) : undefined
+    );
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: formatError(error) };
@@ -731,8 +738,42 @@ export async function handleDeleteAccount(client: BlueskyClient, params: DeleteA
   try {
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
     if (!params.password) return { success: false, error: 'password is required' };
-    await client.deleteAccount(params.password);
+    if (!params.token) return { success: false, error: 'token is required (call request_account_delete first; it is emailed to you)' };
+    await client.deleteAccount(params.password, sanitizeString(params.token));
     return { success: true, data: { deleted: true } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleRequestAccountDelete(client: BlueskyClient): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    await client.requestAccountDelete();
+    return { success: true, data: { requested: true, note: 'A deletion token was emailed to the account email.' } };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleListConvos(client: BlueskyClient, params: ListConvosInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    const result = await client.listConvos(sanitizeCursor(params?.cursor), sanitizeLimit(params?.limit, 50));
+    return { success: true, data: result };
+  } catch (error) {
+    return { success: false, error: formatError(error) };
+  }
+}
+
+export async function handleGetConvoForMembers(client: BlueskyClient, params: GetConvoForMembersInput): Promise<ToolResult> {
+  try {
+    if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
+    if (!Array.isArray(params?.members) || params.members.length === 0 || params.members.length > 10)
+      return { success: false, error: 'members must be an array of 1-10 DIDs' };
+    const members = params.members.filter((m): m is string => typeof m === 'string').map(m => sanitizeString(m, 100));
+    const result = await client.getConvoForMembers(members);
+    return { success: true, data: result };
   } catch (error) {
     return { success: false, error: formatError(error) };
   }
@@ -875,6 +916,7 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   create_session: handleCreateSession,
   deactivate_account: handleDeactivateAccount,
   delete_account: handleDeleteAccount,
+  request_account_delete: handleRequestAccountDelete,
   delete_session: handleDeleteSession,
   describe_server: handleDescribeServer,
   get_account_invite_codes: handleGetAccountInviteCodes,
@@ -883,6 +925,8 @@ export const toolHandlers: Record<string, (...args: any[]) => Promise<ToolResult
   list_app_passwords: handleListAppPasswords,
   refresh_session: handleRefreshSession,
   // Chat
+  list_convos: handleListConvos,
+  get_convo_for_members: handleGetConvoForMembers,
   add_reaction: handleAddReaction,
   remove_reaction: handleRemoveReaction,
   get_messages: handleGetMessages,
