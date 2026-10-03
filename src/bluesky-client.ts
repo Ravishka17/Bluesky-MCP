@@ -23,10 +23,11 @@ import type {
   SearchAccountsInput,
   ProcessedImage
 } from './types';
-import { formatError } from './utils';
+import { formatError, describeHttpError } from './utils';
 
 const CHAT_PROXY_DID = 'did:web:api.bsky.chat';
 const CHAT_PROXY_TYPE = 'bsky_chat';
+const CHAT_DIRECT_URL = 'https://api.bsky.chat';
 
 export class BlueskyClient {
   private agent: BskyAgent;
@@ -93,7 +94,7 @@ export class BlueskyClient {
    */
   private adminError(label: string, error: unknown): Error {
     const message = formatError(error);
-    const looksLikePermission = /auth|admin|forbidden|lexicon|not implemented|unauthorized/i.test(message);
+    const looksLikePermission = /auth|admin|forbidden|lexicon|not implemented|unauthorized|jwt|token/i.test(message);
     const hint = looksLikePermission
       ? ' (this endpoint needs PDS admin privileges and is not available for a normal bsky.social account)'
       : '';
@@ -151,9 +152,48 @@ export class BlueskyClient {
   }
 
   /**
-   * Chat (DM) calls must go through the user's PDS with an atproto-proxy header.
-   * Raw fetch is used because @atproto/api 0.13 lacks typings/lexicons for
-   * newer chat methods (addReaction, removeReaction, ...).
+   * Raw JSON request to any host. Errors keep the server's real message
+   * (the SDK stringifies non-string messages into "[object Object]").
+   */
+  private async rawJson<T>(
+    url: URL,
+    headers: Record<string, string>,
+    body?: Record<string, unknown>
+  ): Promise<T> {
+    const response = await fetch(url.toString(), {
+      method: body ? 'POST' : 'GET',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(describeHttpError(response.status, response.statusText, text));
+    }
+    return (text.trim() ? JSON.parse(text) : undefined) as T;
+  }
+
+  private buildUrl(base: string, nsid: string, params?: Record<string, string | number | string[] | undefined | null>): URL {
+    const url = new URL(`${base}/xrpc/${nsid}`);
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null) continue;
+        if (Array.isArray(value)) value.forEach(v => url.searchParams.append(key, v));
+        else url.searchParams.set(key, String(value));
+      }
+    }
+    return url;
+  }
+
+  /** Authenticated request to the user's own PDS (no proxy). */
+  private async pdsRequest<T>(nsid: string, body?: Record<string, unknown>): Promise<T> {
+    const session = this.requireAuth();
+    return this.rawJson<T>(this.buildUrl(this.serviceUrl, nsid), { Authorization: `Bearer ${session.accessJwt}` }, body);
+  }
+
+  /**
+   * Chat (DM) request. Route 1: PDS + atproto-proxy header.
+   * If the PDS answers "Method Not Implemented" (it did not proxy), route 2:
+   * mint a service-auth token for the chat service and call it directly.
    */
   private async chatRequest<T>(
     nsid: string,
@@ -162,37 +202,25 @@ export class BlueskyClient {
   ): Promise<T> {
     const session = this.requireAuth();
 
-    const url = new URL(`${this.serviceUrl}/xrpc/${nsid}`);
-    if (params) {
-      for (const [key, value] of Object.entries(params)) {
-        if (value === undefined || value === null) continue;
-        if (Array.isArray(value)) value.forEach(v => url.searchParams.append(key, v));
-        else url.searchParams.set(key, String(value));
-      }
+    try {
+      return await this.rawJson<T>(
+        this.buildUrl(this.serviceUrl, nsid, params),
+        {
+          Authorization: `Bearer ${session.accessJwt}`,
+          'atproto-proxy': `${CHAT_PROXY_DID}#${CHAT_PROXY_TYPE}`
+        },
+        body
+      );
+    } catch (error) {
+      if (!/not implemented/i.test(formatError(error))) throw error;
     }
 
-    const response = await fetch(url.toString(), {
-      method: body ? 'POST' : 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.accessJwt}`,
-        'atproto-proxy': `${CHAT_PROXY_DID}#${CHAT_PROXY_TYPE}`
-      },
-      body: body ? JSON.stringify(body) : undefined
-    });
-
-    const text = await response.text();
-    if (!response.ok) {
-      let message = `Chat request failed: ${response.status} ${response.statusText}`;
-      try {
-        const e = JSON.parse(text) as { message?: string; error?: string };
-        message = e.message || e.error || message;
-      } catch {
-        // ignore
-      }
-      throw new Error(message);
-    }
-    return (text.trim() ? JSON.parse(text) : undefined) as T;
+    const auth = await this.agent.com.atproto.server.getServiceAuth({ aud: CHAT_PROXY_DID, lxm: nsid });
+    return this.rawJson<T>(
+      this.buildUrl(CHAT_DIRECT_URL, nsid, params),
+      { Authorization: `Bearer ${auth.data.token}` },
+      body
+    );
   }
 
   /**
@@ -697,9 +725,8 @@ export class BlueskyClient {
   // ── Server / account management (typed methods, no raw xrpc.get) ───────────
 
   async updateEmail(email: string, token?: string): Promise<void> {
-    this.requireAuth();
     try {
-      await this.agent.com.atproto.server.updateEmail({ email, ...(token ? { token } : {}) });
+      await this.pdsRequest('com.atproto.server.updateEmail', { email, ...(token ? { token } : {}) });
     } catch (error) {
       throw new Error(`Failed to update email: ${formatError(error)}`);
     }
@@ -747,16 +774,20 @@ export class BlueskyClient {
     plcOp?: Record<string, unknown>
   ): Promise<{ did: string; handle: string; accessJwt: string; refreshJwt: string }> {
     try {
-      const res = await this.agent.com.atproto.server.createAccount({
-        email,
-        handle,
-        password,
-        ...(inviteCode ? { inviteCode } : {}),
-        ...(verificationCode ? { verificationCode } : {}),
-        ...(verificationPhone ? { verificationPhone } : {}),
-        ...(plcOp ? { plcOp } : {})
-      });
-      return res.data;
+      // Unauthenticated, so go straight to the PDS with raw fetch.
+      return await this.rawJson(
+        this.buildUrl(this.serviceUrl, 'com.atproto.server.createAccount'),
+        {},
+        {
+          email,
+          handle,
+          password,
+          ...(inviteCode ? { inviteCode } : {}),
+          ...(verificationCode ? { verificationCode } : {}),
+          ...(verificationPhone ? { verificationPhone } : {}),
+          ...(plcOp ? { plcOp } : {})
+        }
+      );
     } catch (error) {
       throw new Error(`Failed to create account: ${formatError(error)}`);
     }
