@@ -126,9 +126,12 @@ export function describeHttpError(status: number, statusText: string, bodyText: 
   }
 }
 
+const SCOPE_HINT =
+  ' (the current app password is not permitted to call this endpoint. Account/invite-management endpoints may need a privileged app password or are unavailable to app passwords; DM endpoints need an app password created with "Allow access to your direct messages")';
+
 function addHints(message: string): string {
-  if (/bad token scope/i.test(message)) {
-    return `${message} (this app password lacks the needed permission; create one with "Allow access to your direct messages" enabled, or the endpoint may not be available to app passwords)`;
+  if (/bad token scope/i.test(message) && !message.includes('app password is not permitted')) {
+    return message + SCOPE_HINT;
   }
   return message;
 }
