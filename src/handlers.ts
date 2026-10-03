@@ -55,6 +55,9 @@ import type {
   ToolResult
 } from './types';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const HANDLE_RE = /^([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
+
 /**
  * If authenticated, route through the user's PDS (works for all endpoints).
  * Otherwise fall back to the public AppView (read-only, no auth).
@@ -609,6 +612,7 @@ export async function handleUpdateEmail(client: BlueskyClient, params: UpdateEma
   try {
     if (!client.isLoggedIn()) return { success: false, error: 'Authentication required' };
     if (!params.email) return { success: false, error: 'email is required' };
+    if (!EMAIL_RE.test(params.email.trim())) return { success: false, error: 'email is not a valid email address' };
     await client.updateEmail(
       sanitizeString(params.email),
       params.token ? sanitizeString(params.token) : undefined
@@ -656,6 +660,9 @@ export async function handleCreateAccount(client: BlueskyClient, params: CreateA
     if (!params.email) return { success: false, error: 'email is required' };
     if (!params.handle) return { success: false, error: 'handle is required' };
     if (!params.password) return { success: false, error: 'password is required' };
+    if (!EMAIL_RE.test(params.email.trim())) return { success: false, error: 'email is not a valid email address' };
+    if (!HANDLE_RE.test(params.handle.trim())) return { success: false, error: 'handle must look like name.bsky.social (letters, digits, hyphens, dots)' };
+    if (params.password.length < 8) return { success: false, error: 'password must be at least 8 characters' };
     const result = await client.createAccount(
       sanitizeString(params.email),
       sanitizeString(params.handle),
