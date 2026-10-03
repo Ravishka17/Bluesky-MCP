@@ -101,6 +101,38 @@ export function safeJsonParse<T>(json: string, fallback: T): T {
 /**
  * Format error message for API response
  */
+/** Turn any value (string, array, object) into readable text. */
+export function stringifyDetail(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value === undefined || value === null) return '';
+  try {
+    return JSON.stringify(value).slice(0, 500);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Build a readable message from a failed HTTP response body (JSON or text). */
+export function describeHttpError(status: number, statusText: string, bodyText: string): string {
+  const fallback = `${status} ${statusText}`.trim();
+  try {
+    const parsed = JSON.parse(bodyText) as { error?: unknown; message?: unknown };
+    const message = stringifyDetail(parsed.message);
+    const name = stringifyDetail(parsed.error);
+    if (message && name && message !== name) return `${name}: ${message}`;
+    return message || name || fallback;
+  } catch {
+    return bodyText.trim().slice(0, 300) || fallback;
+  }
+}
+
+function addHints(message: string): string {
+  if (/bad token scope/i.test(message)) {
+    return `${message} (this app password lacks the needed permission; create one with "Allow access to your direct messages" enabled, or the endpoint may not be available to app passwords)`;
+  }
+  return message;
+}
+
 export function formatError(error: unknown): string {
   if (error instanceof Error) {
     if (error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT')) {
@@ -109,23 +141,20 @@ export function formatError(error: unknown): string {
     if (error.message.includes('429') || error.message.toLowerCase().includes('rate limit')) {
       return 'Rate limit exceeded. Please try again later.';
     }
-    return error.message || error.name;
+    return addHints(error.message || error.name);
   }
 
-  if (typeof error === 'string') return error;
+  if (typeof error === 'string') return addHints(error);
 
   if (error && typeof error === 'object') {
     const e = error as Record<string, unknown>;
     const data = (e.data && typeof e.data === 'object' ? e.data : {}) as Record<string, unknown>;
-    const candidates = [e.message, data.message, e.error, data.error];
-    for (const c of candidates) {
-      if (typeof c === 'string' && c) return c;
+    for (const c of [e.message, data.message, e.error, data.error]) {
+      const text = stringifyDetail(c);
+      if (text) return addHints(text);
     }
-    try {
-      return JSON.stringify(error).slice(0, 500);
-    } catch {
-      // fall through
-    }
+    const whole = stringifyDetail(error);
+    if (whole) return whole;
   }
 
   return 'An unexpected error occurred';
